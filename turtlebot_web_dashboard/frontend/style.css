@@ -1,0 +1,43 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #121212;
+    color: white;
+    font-family: Arial;
+}
+
+.container {
+    width: 80%;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.status,
+.controls,
+.slider-section,
+.camera {
+    background: #1e1e1e;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+}
+
+#stopButton {
+    margin-top: 20px;
+    width: 100%;
+    height: 60px;
+    background: red;
+    color: white;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+#cameraFeed {
+    width: 100%;
+    border-radius: 10px;
+}
