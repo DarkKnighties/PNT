@@ -1,14 +1,20 @@
-// Connect to ROSBridge WebSocket
+// =========================
+// CONNECT TO ROSBRIDGE
+// =========================
 
 const ros = new ROSLIB.Ros({
     url: 'ws://localhost:9090'
 });
 
-// Connection Status
+// =========================
+// CONNECTION STATUS
+// =========================
 
 ros.on('connection', function () {
 
     document.getElementById('connection').innerHTML = 'Connected';
+
+    console.log("Connected to ROSBridge");
 
 });
 
@@ -16,30 +22,42 @@ ros.on('error', function () {
 
     document.getElementById('connection').innerHTML = 'Error';
 
+    console.log("ROSBridge Error");
+
 });
 
 ros.on('close', function () {
 
     document.getElementById('connection').innerHTML = 'Closed';
 
+    console.log("ROSBridge Connection Closed");
+
 });
 
-// Create /cmd_vel publisher
+// =========================
+// CREATE /cmd_vel PUBLISHER
+// =========================
 
 const cmdVel = new ROSLIB.Topic({
 
     ros: ros,
+
     name: '/cmd_vel',
+
     messageType: 'geometry_msgs/Twist'
 
 });
 
-// Velocity Variables
+// =========================
+// VELOCITY VARIABLES
+// =========================
 
 let linear = 0;
 let angular = 0;
 
-// Speed Slider
+// =========================
+// SPEED SLIDER
+// =========================
 
 const speedSlider = document.getElementById('speedSlider');
 
@@ -51,7 +69,9 @@ speedSlider.oninput = function () {
 
 };
 
-// Function to publish velocity
+// =========================
+// PUBLISH VELOCITY FUNCTION
+// =========================
 
 function publishVelocity() {
 
@@ -73,179 +93,197 @@ function publishVelocity() {
 
     cmdVel.publish(twist);
 
-    document.getElementById('linear').innerHTML = linear.toFixed(2);
+    // Update UI
 
-    document.getElementById('angular').innerHTML = angular.toFixed(2);
+    document.getElementById('linear').innerHTML =
+        linear.toFixed(2);
+
+    document.getElementById('angular').innerHTML =
+        angular.toFixed(2);
 }
 
 // =========================
-// BUTTON CONTROLS
+// CONTINUOUS PUBLISHING LOOP
 // =========================
 
-// Forward Button
+// Publish at 10 Hz
+
+setInterval(function () {
+
+    publishVelocity();
+
+}, 100);
+
+// =========================
+// BUTTON REFERENCES
+// =========================
 
 const forwardBtn = document.getElementById('forwardBtn');
+
+const backwardBtn = document.getElementById('backwardBtn');
+
+const leftBtn = document.getElementById('leftBtn');
+
+const rightBtn = document.getElementById('rightBtn');
+
+const stopBtn = document.getElementById('stopBtn');
+
+// =========================
+// FORWARD BUTTON
+// =========================
 
 forwardBtn.onmousedown = function () {
 
     linear = speed;
     angular = 0;
 
-    publishVelocity();
 };
 
-forwardBtn.onmouseup = function () {
+forwardBtn.onmouseup = stopRobot;
 
-    linear = 0;
-    angular = 0;
+forwardBtn.onmouseleave = stopRobot;
 
-    publishVelocity();
-};
-
-// Backward Button
-
-const backwardBtn = document.getElementById('backwardBtn');
-
-backwardBtn.onmousedown = function () {
-
-    linear = -speed;
-    angular = 0;
-
-    publishVelocity();
-};
-
-backwardBtn.onmouseup = function () {
-
-    linear = 0;
-    angular = 0;
-
-    publishVelocity();
-};
-
-// Left Button
-
-const leftBtn = document.getElementById('leftBtn');
-
-leftBtn.onmousedown = function () {
-
-    linear = 0;
-    angular = speed;
-
-    publishVelocity();
-};
-
-leftBtn.onmouseup = function () {
-
-    linear = 0;
-    angular = 0;
-
-    publishVelocity();
-};
-
-// Right Button
-
-const rightBtn = document.getElementById('rightBtn');
-
-rightBtn.onmousedown = function () {
-
-    linear = 0;
-    angular = -speed;
-
-    publishVelocity();
-};
-
-rightBtn.onmouseup = function () {
-
-    linear = 0;
-    angular = 0;
-
-    publishVelocity();
-};
-
-// STOP Button
-
-const stopBtn = document.getElementById('stopBtn');
-
-stopBtn.onclick = function () {
-
-    linear = 0;
-    angular = 0;
-
-    publishVelocity();
-};
-
-// =========================
-// MOBILE TOUCH SUPPORT
-// =========================
-
-// Forward
+// Mobile
 
 forwardBtn.ontouchstart = function () {
 
     linear = speed;
     angular = 0;
 
-    publishVelocity();
 };
 
-forwardBtn.ontouchend = function () {
+forwardBtn.ontouchend = stopRobot;
 
-    linear = 0;
+// =========================
+// BACKWARD BUTTON
+// =========================
+
+backwardBtn.onmousedown = function () {
+
+    linear = -speed;
     angular = 0;
 
-    publishVelocity();
 };
 
-// Backward
+backwardBtn.onmouseup = stopRobot;
+
+backwardBtn.onmouseleave = stopRobot;
+
+// Mobile
 
 backwardBtn.ontouchstart = function () {
 
     linear = -speed;
     angular = 0;
 
-    publishVelocity();
 };
 
-backwardBtn.ontouchend = function () {
+backwardBtn.ontouchend = stopRobot;
+
+// =========================
+// LEFT BUTTON
+// =========================
+
+leftBtn.onmousedown = function () {
 
     linear = 0;
-    angular = 0;
+    angular = speed;
 
-    publishVelocity();
 };
 
-// Left
+leftBtn.onmouseup = stopRobot;
+
+leftBtn.onmouseleave = stopRobot;
+
+// Mobile
 
 leftBtn.ontouchstart = function () {
 
     linear = 0;
     angular = speed;
 
-    publishVelocity();
 };
 
-leftBtn.ontouchend = function () {
+leftBtn.ontouchend = stopRobot;
+
+// =========================
+// RIGHT BUTTON
+// =========================
+
+rightBtn.onmousedown = function () {
 
     linear = 0;
-    angular = 0;
+    angular = -speed;
 
-    publishVelocity();
 };
 
-// Right
+rightBtn.onmouseup = stopRobot;
+
+rightBtn.onmouseleave = stopRobot;
+
+// Mobile
 
 rightBtn.ontouchstart = function () {
 
     linear = 0;
     angular = -speed;
 
-    publishVelocity();
 };
 
-rightBtn.ontouchend = function () {
+rightBtn.ontouchend = stopRobot;
+
+// =========================
+// STOP ROBOT FUNCTION
+// =========================
+
+function stopRobot() {
 
     linear = 0;
     angular = 0;
 
-    publishVelocity();
+}
+
+// =========================
+// STOP BUTTON
+// =========================
+
+stopBtn.onclick = function () {
+
+    stopRobot();
+
+};
+
+// =========================
+// SHUTDOWN SYSTEM BUTTON
+// =========================
+
+document.getElementById('shutdownSystem').onclick =
+function () {
+
+    // Stop robot before shutdown
+
+    stopRobot();
+
+    // Close ROS websocket cleanly
+
+    ros.close();
+
+    fetch('/shutdown')
+
+        .then(response => response.text())
+
+        .then(data => {
+
+            alert(data);
+
+        })
+
+        .catch(error => {
+
+            alert("Shutdown Failed");
+
+            console.log(error);
+
+        });
+
 };

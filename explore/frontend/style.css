@@ -1,0 +1,364 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+/* ========================================
+   BASE
+======================================== */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #080c10;
+    color: #c9d4e0;
+    font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* ========================================
+   LAYOUT
+======================================== */
+
+.dashboard {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+}
+
+.panel {
+    padding: 20px;
+}
+
+/* ========================================
+   LEFT PANEL
+======================================== */
+
+.left-panel {
+    width: 22%;
+    min-width: 220px;
+    background: #0d1117;
+    border-right: 1px solid #1e3a4a;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.left-panel::-webkit-scrollbar {
+    display: none;
+}
+
+/* Header / logo */
+.left-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #1e3a4a;
+    margin-bottom: 4px;
+}
+
+.logo-mark {
+    background: #00ffff;
+    color: #080c10;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 4px 7px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+}
+
+.left-header h2 {
+    color: #00ffff;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Section labels */
+.section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #3a6b7a;
+    margin-top: 6px;
+}
+
+/* ========================================
+   STATUS CARD
+======================================== */
+
+.status-card {
+    background: #111820;
+    border: 1px solid #1e3a4a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4444;
+    flex-shrink: 0;
+    box-shadow: 0 0 5px #ff4444;
+    transition: background 0.4s, box-shadow 0.4s;
+}
+
+.status-dot.connected {
+    background: #00ffaa;
+    box-shadow: 0 0 6px #00ffaa;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.status-key {
+    font-size: 13px;
+    color: #7a9ab0;
+    flex: 1;
+}
+
+.status-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: #ff6b6b;
+    text-align: right;
+}
+
+.status-val.ok {
+    color: #00ffaa;
+}
+
+/* ========================================
+   CONTROLS
+======================================== */
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+button {
+    height: 46px;
+    border: none;
+    border-radius: 7px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: filter 0.15s, transform 0.1s;
+}
+
+button:active {
+    transform: scale(0.97);
+    filter: brightness(0.85);
+}
+
+.btn-icon {
+    font-size: 11px;
+    opacity: 0.85;
+}
+
+#startExploration {
+    background: linear-gradient(135deg, #00855a, #00c853);
+    color: #fff;
+}
+
+#startExploration:hover {
+    filter: brightness(1.12);
+}
+
+#stopExploration {
+    background: linear-gradient(135deg, #b35e00, #ff9800);
+    color: #fff;
+}
+
+#stopExploration:hover {
+    filter: brightness(1.12);
+}
+
+#shutdownSystem {
+    background: linear-gradient(135deg, #7a0000, #d50000);
+    color: #fff;
+}
+
+#shutdownSystem:hover {
+    filter: brightness(1.15);
+}
+
+/* ========================================
+   TELEMETRY CARD
+======================================== */
+
+.telemetry-card {
+    background: #111820;
+    border: 1px solid #1e3a4a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.telemetry-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tel-key {
+    font-size: 13px;
+    color: #7a9ab0;
+}
+
+.tel-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: #7a9ab0;
+    background: #1a2530;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.tel-val.active {
+    color: #00ffaa;
+    background: rgba(0, 255, 170, 0.08);
+    border: 1px solid rgba(0, 255, 170, 0.2);
+}
+
+/* ========================================
+   CENTER PANEL
+======================================== */
+
+.center-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 24px;
+    gap: 12px;
+    background: #080c10;
+}
+
+h1 {
+    color: #00ffff;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-align: center;
+    flex-shrink: 0;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+/* ========================================
+   VISUALIZATION CONTAINER
+======================================== */
+
+.visualization-container {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+}
+
+/* Feed label */
+.feed-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #3a6b7a;
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    z-index: 2;
+}
+
+/* Camera */
+.camera-container {
+    flex: 1;
+    position: relative;
+    background: #000;
+    border: 1px solid #1e3a4a;
+    border-radius: 10px;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.camera-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    box-shadow: inset 0 0 30px rgba(0, 255, 255, 0.04);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Corner brackets */
+.camera-container::after,
+.map-container::after {
+    content: '';
+    position: absolute;
+    top: 6px; left: 6px;
+    right: 6px; bottom: 6px;
+    border-top: 1px solid rgba(0, 255, 255, 0.15);
+    border-left: 1px solid rgba(0, 255, 255, 0.15);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+    border-right: 1px solid rgba(0, 255, 255, 0.15);
+    border-radius: 7px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+#cameraFeed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Map */
+.map-container {
+    flex: 1;
+    position: relative;
+    background: #0a1018;
+    border: 1px solid #1e3a4a;
+    border-radius: 10px;
+    overflow: hidden;
+    min-height: 0;
+}
+
+#mapCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}

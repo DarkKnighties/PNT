@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Autonomous TurtleBot3 Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
+
+</head>
+
+<body>
+
+<div class="dashboard">
+
+    <!-- LEFT PANEL: Status + Controls + Telemetry -->
+    <div class="panel left-panel">
+
+        <div class="left-header">
+            <div class="logo-mark">TB3</div>
+            <h2>TurtleBot3</h2>
+        </div>
+
+        <!-- STATUS -->
+        <div class="section-label">SYSTEM STATUS</div>
+        <div class="status-card">
+
+            <div class="status-row">
+                <span class="status-dot" id="connectionDot"></span>
+                <span class="status-key">ROSBridge</span>
+                <span class="status-val" id="connection">Disconnected</span>
+            </div>
+
+            <div class="status-row">
+                <span class="status-dot" id="explorationDot"></span>
+                <span class="status-key">Exploration</span>
+                <span class="status-val" id="explorationState">Idle</span>
+            </div>
+
+        </div>
+
+        <!-- CONTROLS -->
+        <div class="section-label">CONTROLS</div>
+        <div class="controls">
+
+            <button id="startExploration">
+                <span class="btn-icon">▶</span> START EXPLORATION
+            </button>
+
+            <button id="stopExploration">
+                <span class="btn-icon">■</span> STOP EXPLORATION
+            </button>
+
+            <button id="shutdownSystem">
+                <span class="btn-icon">⏻</span> SHUTDOWN SYSTEM
+            </button>
+
+        </div>
+
+        <!-- TELEMETRY -->
+        <div class="section-label">TELEMETRY</div>
+        <div class="telemetry-card">
+
+            <div class="telemetry-row">
+                <span class="tel-key">Robot Status</span>
+                <span class="tel-val active">ACTIVE</span>
+            </div>
+
+            <div class="telemetry-row">
+                <span class="tel-key">Navigation</span>
+                <span class="tel-val active">READY</span>
+            </div>
+
+            <div class="telemetry-row">
+                <span class="tel-key">SLAM</span>
+                <span class="tel-val active">RUNNING</span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- CENTER PANEL: Visualizations -->
+    <div class="panel center-panel">
+
+        <h1>Autonomous TurtleBot3 Dashboard</h1>
+
+        <div class="visualization-container">
+
+            <div class="camera-container">
+                <div class="feed-label">CAMERA FEED</div>
+                <img
+                    id="cameraFeed"
+                    src="http://localhost:8080/stream?topic=/camera/image_raw">
+            </div>
+
+            <div class="map-container">
+                <div class="feed-label">OCCUPANCY MAP</div>
+                <canvas id="mapCanvas"></canvas>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
