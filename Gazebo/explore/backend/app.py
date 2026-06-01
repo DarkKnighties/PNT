@@ -2,7 +2,7 @@ from flask import Flask
 from flask import send_from_directory
 from flask import jsonify
 
-from system_manager import SystemManager
+from Gazebo.explore.backend.system_manager import SystemManager
 
 # ==========================================
 # CREATE FLASK APP
