@@ -1,8 +1,12 @@
+import threading
+import webbrowser
+
 from flask import Flask
 from flask import send_from_directory
 from flask import jsonify
 
-from Gazebo.explore.backend.system_manager import SystemManager
+from robot_stack import RobotStack
+
 
 # ==========================================
 # CREATE FLASK APP
@@ -11,37 +15,38 @@ from Gazebo.explore.backend.system_manager import SystemManager
 app = Flask(
 
     __name__,
-    static_folder='../frontend'
+    static_folder="../frontend"
 
 )
 
 # ==========================================
-# CREATE SYSTEM MANAGER
+# CREATE ROBOT STACK
 # ==========================================
 
-manager = SystemManager()
+stack = RobotStack()
 
 # ==========================================
 # START ROBOTICS STACK
 # ==========================================
 
-manager.start_system()
+stack.start_system()
 
 # ==========================================
-# SERVE FRONTEND
+# FRONTEND
 # ==========================================
 
-@app.route('/')
+@app.route("/")
 def index():
 
     return send_from_directory(
 
         app.static_folder,
-        'index.html'
+        "index.html"
 
     )
 
-@app.route('/<path:path>')
+
+@app.route("/<path:path>")
 def static_files(path):
 
     return send_from_directory(
@@ -52,62 +57,77 @@ def static_files(path):
     )
 
 # ==========================================
-# START EXPLORATION
+# ENABLE AUTONOMY
 # ==========================================
 
-@app.route('/start_exploration')
-
+@app.route("/start_exploration")
 def start_exploration():
 
-    manager.start_exploration()
+    stack.enable_autonomy()
 
-    return jsonify({
+    return jsonify(
 
-        "message": "Exploration Started"
+        {
+            "message": "Autonomous Mode Enabled"
+        }
 
-    })
+    )
 
 # ==========================================
-# STOP EXPLORATION
+# DISABLE AUTONOMY
 # ==========================================
 
-@app.route('/stop_exploration')
-
+@app.route("/stop_exploration")
 def stop_exploration():
 
-    manager.stop_exploration()
+    stack.disable_autonomy()
 
-    return jsonify({
+    return jsonify(
 
-        "message": "Exploration Stopped"
+        {
+            "message": "Autonomous Mode Disabled"
+        }
 
-    })
+    )
 
 # ==========================================
 # EMERGENCY STOP
 # ==========================================
 
-@app.route('/emergency_stop')
-
+@app.route("/emergency_stop")
 def emergency_stop():
 
-    manager.emergency_stop()
+    stack.emergency_stop()
 
-    return jsonify({
+    return jsonify(
 
-        "message": "Emergency Stop Activated"
+        {
+            "message": "Emergency Stop Activated"
+        }
 
-    })
+    )
 
 # ==========================================
-# SHUTDOWN SYSTEM
+# STATUS API
 # ==========================================
 
-@app.route('/shutdown')
+@app.route("/status")
+def status():
 
+    return jsonify(
+
+        stack.get_status()
+
+    )
+
+# ==========================================
+# SHUTDOWN
+# ==========================================
+
+@app.route("/shutdown")
 def shutdown():
 
-    manager.shutdown_system()
+    stack.shutdown_system()
 
     return "System Shutdown"
 
@@ -115,11 +135,21 @@ def shutdown():
 # MAIN
 # ==========================================
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
+    threading.Timer(
+
+        1.5,
+
+        lambda: webbrowser.open(
+            "http://localhost:5000"
+        )
+
+    ).start()
 
     app.run(
 
-        host='0.0.0.0',
+        host="0.0.0.0",
         port=5000,
         debug=False
 

@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap'); */
 
 /* ========================================
    BASE
 ======================================== */
 
-*, *::before, *::after {
+/* *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -17,12 +17,12 @@ body {
     overflow: hidden;
     height: 100vh;
     width: 100vw;
-}
+} */
 
 /* ========================================
    LAYOUT
 ======================================== */
-
+/* 
 .dashboard {
     display: flex;
     width: 100vw;
@@ -31,12 +31,12 @@ body {
 
 .panel {
     padding: 20px;
-}
+} */
 
 /* ========================================
    LEFT PANEL
 ======================================== */
-
+/* 
 .left-panel {
     width: 22%;
     min-width: 220px;
@@ -51,10 +51,10 @@ body {
 
 .left-panel::-webkit-scrollbar {
     display: none;
-}
+} */
 
 /* Header / logo */
-.left-header {
+/* .left-header {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -83,19 +83,20 @@ body {
 }
 
 /* Section labels */
+/*
 .section-label {
     font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
     letter-spacing: 3px;
     color: #3a6b7a;
     margin-top: 6px;
-}
+} */
 
 /* ========================================
    STATUS CARD
 ======================================== */
 
-.status-card {
+/* .status-card {
     background: #111820;
     border: 1px solid #1e3a4a;
     border-radius: 8px;
@@ -147,13 +148,13 @@ body {
 
 .status-val.ok {
     color: #00ffaa;
-}
+} */
 
 /* ========================================
    CONTROLS
 ======================================== */
 
-.controls {
+/* .controls {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -210,13 +211,13 @@ button:active {
 
 #shutdownSystem:hover {
     filter: brightness(1.15);
-}
+} */
 
 /* ========================================
    TELEMETRY CARD
 ======================================== */
 
-.telemetry-card {
+/* .telemetry-card {
     background: #111820;
     border: 1px solid #1e3a4a;
     border-radius: 8px;
@@ -250,12 +251,12 @@ button:active {
     color: #00ffaa;
     background: rgba(0, 255, 170, 0.08);
     border: 1px solid rgba(0, 255, 170, 0.2);
-}
+} */
 
 /* ========================================
    CENTER PANEL
 ======================================== */
-
+/* 
 .center-panel {
     flex: 1;
     display: flex;
@@ -275,23 +276,23 @@ h1 {
     text-align: center;
     flex-shrink: 0;
     text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-}
+} */
 
 /* ========================================
    VISUALIZATION CONTAINER
 ======================================== */
 
-.visualization-container {
+/* .visualization-container {
     width: 100%;
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 14px;
     min-height: 0;
-}
+} */
 
 /* Feed label */
-.feed-label {
+/* .feed-label {
     font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
     letter-spacing: 3px;
@@ -300,10 +301,10 @@ h1 {
     top: 10px;
     left: 14px;
     z-index: 2;
-}
+} */
 
 /* Camera */
-.camera-container {
+/* .camera-container {
     flex: 1;
     position: relative;
     background: #000;
@@ -311,7 +312,7 @@ h1 {
     border-radius: 10px;
     overflow: hidden;
     min-height: 0;
-}
+} */
 
 .camera-container::before {
     content: '';
@@ -324,7 +325,7 @@ h1 {
 }
 
 /* Corner brackets */
-.camera-container::after,
+/* .camera-container::after,
 .map-container::after {
     content: '';
     position: absolute;
@@ -337,17 +338,17 @@ h1 {
     border-radius: 7px;
     pointer-events: none;
     z-index: 1;
-}
-
+} */
+/* 
 #cameraFeed {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
-}
+} */
 
 /* Map */
-.map-container {
+/* .map-container {
     flex: 1;
     position: relative;
     background: #0a1018;
@@ -361,4 +362,4 @@ h1 {
     width: 100%;
     height: 100%;
     display: block;
-}
+} */

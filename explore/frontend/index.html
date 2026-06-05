@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurtleBot3 — Autonomous Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
+<style>
+
+/* ── RESET ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── TOKENS ─────────────────────────────────── */
+:root {
+  --bg:        #06090d;
+  --bg-panel:  #0b1018;
+  --bg-card:   #101820;
+  --border:    #1c2e3d;
+  --border-hi: #2a4a60;
+
+  --text:      #c8d8e8;
+  --text-dim:  #4e6e82;
+  --text-mid:  #7a9bb4;
+
+  --cyan:      #00e5ff;
+  --cyan-dim:  rgba(0,229,255,.08);
+  --green:     #00e676;
+  --green-dim: rgba(0,230,118,.08);
+  --amber:     #ffab00;
+  --amber-dim: rgba(255,171,0,.08);
+  --red:       #ff1744;
+  --red-dim:   rgba(255,23,68,.08);
+
+  --font-display: 'Syne', sans-serif;
+  --font-mono:    'IBM Plex Mono', monospace;
+}
+
+/* ── BASE ─────────────────────────────────── */
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ── SCAN-LINE OVERLAY ─────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,.06) 2px,
+    rgba(0,0,0,.06) 4px
+  );
+  pointer-events: none;
+}
+
+/* ── ROOT GRID ─────────────────────────────── */
+.root {
+  display: grid;
+  grid-template-columns: 260px 1fr 220px;
+  grid-template-rows: 48px 1fr;
+  height: 100vh;
+  gap: 0;
+}
+
+/* ── TOPBAR ─────────────────────────────────── */
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 20px;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.topbar-badge {
+  background: var(--cyan);
+  color: #000;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: .12em;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+.topbar-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: .15em;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+
+.topbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+.topbar-crumb {
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.topbar-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── LEFT PANEL ─────────────────────────────── */
+.left {
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── CENTER ─────────────────────────────────── */
+.center {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── RIGHT PANEL ─────────────────────────────── */
+.right {
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── PANEL SECTION ─────────────────────────── */
+.p-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.p-label {
+  font-size: 9px;
+  letter-spacing: .2em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.p-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── STATUS INDICATORS ─────────────────────── */
+.status-list { display: flex; flex-direction: column; gap: 7px; }
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 2px rgba(255,23,68,.2);
+  flex-shrink: 0;
+  transition: background .4s, box-shadow .4s;
+}
+
+.status-dot.on {
+  background: var(--green);
+  box-shadow: 0 0 0 2px rgba(0,230,118,.2);
+  animation: blink 2.4s ease-in-out infinite;
+}
+
+.status-dot.warn {
+  background: var(--amber);
+  box-shadow: 0 0 0 2px rgba(255,171,0,.2);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .45; }
+}
+
+.status-name { flex: 1; color: var(--text-mid); font-size: 11px; }
+.status-val {
+  font-size: 10px;
+  letter-spacing: .05em;
+  color: var(--red);
+  text-transform: uppercase;
+}
+.status-val.ok { color: var(--green); }
+.status-val.warn { color: var(--amber); }
+
+/* ── CONTROLS ─────────────────────────────── */
+.controls { display: flex; flex-direction: column; gap: 8px; }
+
+.btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-mid);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  overflow: hidden;
+  transition: color .15s, border-color .15s, background .15s;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity .15s;
+}
+
+.btn:hover { color: #fff; }
+.btn:active { transform: scale(.98); }
+
+/* Start */
+.btn-start {
+  border-color: rgba(0,230,118,.3);
+}
+.btn-start::before { background: var(--green-dim); }
+.btn-start:hover { border-color: var(--green); }
+.btn-start:hover::before { opacity: 1; }
+.btn-start:hover .btn-icon { color: var(--green); }
+
+/* Stop */
+.btn-stop {
+  border-color: rgba(255,171,0,.3);
+}
+.btn-stop::before { background: var(--amber-dim); }
+.btn-stop:hover { border-color: var(--amber); }
+.btn-stop:hover::before { opacity: 1; }
+.btn-stop:hover .btn-icon { color: var(--amber); }
+
+/* Shutdown */
+.btn-shutdown {
+  border-color: rgba(255,23,68,.3);
+}
+.btn-shutdown::before { background: var(--red-dim); }
+.btn-shutdown:hover { border-color: var(--red); }
+.btn-shutdown:hover::before { opacity: 1; }
+.btn-shutdown:hover .btn-icon { color: var(--red); }
+
+.btn-icon {
+  font-size: 16px;
+  line-height: 1;
+  transition: color .15s;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+
+.btn-label { position: relative; z-index: 1; }
+
+/* ── TELEMETRY ─────────────────────────────── */
+.telem-list { display: flex; flex-direction: column; gap: 6px; }
+
+.telem-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.telem-row:last-child { border-bottom: none; }
+
+.telem-key { font-size: 10px; color: var(--text-dim); letter-spacing: .06em; }
+.telem-val {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.telem-val.active {
+  background: rgba(0,230,118,.1);
+  color: var(--green);
+  border: 1px solid rgba(0,230,118,.2);
+}
+.telem-val.inactive {
+  background: rgba(255,23,68,.08);
+  color: var(--red);
+  border: 1px solid rgba(255,23,68,.15);
+}
+
+/* ── LOG ─────────────────────────────────── */
+.log-area {
+  flex: 1;
+  padding: 10px 14px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.log-area::-webkit-scrollbar { width: 4px; }
+.log-area::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+.log-entry {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  line-height: 1.6;
+  padding: 1px 0;
+}
+
+.log-time { color: var(--text-dim); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.log-msg { color: var(--text-mid); }
+.log-msg.info { color: var(--cyan); }
+.log-msg.ok   { color: var(--green); }
+.log-msg.warn { color: var(--amber); }
+.log-msg.err  { color: var(--red); }
+
+/* ── CENTER: VISUALIZATIONS ──────────────── */
+.viz-grid {
+  flex: 1;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto auto;
+  gap: 10px;
+  padding: 14px;
+  min-height: 0;
+}
+
+.feed-card {
+  position: relative;
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mission-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  min-height: 110px;
+}
+
+.mission-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mission-label {
+  font-size: 9px;
+  letter-spacing: .15em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.mission-value {
+  margin-top: 6px;
+  font-size: 24px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+}
+
+.dual-view {
+  display: grid;
+  grid-template-columns: minmax(500px, 1fr) 0.8fr;
+  gap: 10px;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.map-wrapper {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  height: auto;
+  justify-self: center;
+}
+
+.camera-wrapper {
+  height: 100%;
+}
+
+.bottom-strip {
+  display: grid;
+  grid-template-columns:
+    repeat(5, 1fr);
+  gap: 10px;
+}
+
+.strip-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.strip-label {
+  font-size: 9px;
+  letter-spacing: .15em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.strip-value {
+  margin-top: 4px;
+  font-size: 18px;
+  font-family: var(--font-display);
+  color: var(--cyan);
+}
+
+.feed-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,229,255,.07);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* corner brackets */
+.corner-tr, .corner-bl {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  z-index: 3;
+  pointer-events: none;
+}
+.corner-tr {
+  top: 6px; right: 6px;
+  border-top: 1px solid var(--cyan);
+  border-right: 1px solid var(--cyan);
+  opacity: .5;
+}
+.corner-bl {
+  bottom: 6px; left: 6px;
+  border-bottom: 1px solid var(--cyan);
+  border-left: 1px solid var(--cyan);
+  opacity: .5;
+}
+
+.feed-label {
+  position: absolute;
+  top: 10px; left: 12px;
+  z-index: 4;
+  font-size: 9px;
+  letter-spacing: .2em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  opacity: .7;
+  background: rgba(6,9,13,.6);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.feed-badge {
+  position: absolute;
+  top: 10px; right: 12px;
+  z-index: 4;
+  font-size: 9px;
+  letter-spacing: .12em;
+  color: var(--green);
+  text-transform: uppercase;
+  background: rgba(0,230,118,.1);
+  border: 1px solid rgba(0,230,118,.2);
+  padding: 2px 7px;
+  border-radius: 2px;
+}
+
+#cameraFeed {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+
+#mapCanvas {
+  width: 100%; height: 100%;
+  display: block;
+}
+
+/* ── RIGHT PANEL: SUBSYSTEMS ─────────────── */
+.sys-list { display: flex; flex-direction: column; gap: 6px; }
+
+.sys-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.sys-name { font-size: 10px; color: var(--text-mid); letter-spacing: .05em; }
+
+.sys-pill {
+  font-size: 9px;
+  letter-spacing: .1em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.sys-pill.up {
+  background: rgba(0,230,118,.1);
+  color: var(--green);
+  border: 1px solid rgba(0,230,118,.2);
+}
+.sys-pill.down {
+  background: rgba(255,23,68,.08);
+  color: var(--red);
+  border: 1px solid rgba(255,23,68,.15);
+}
+
+/* ── MINI METRIC ─────────────────────────── */
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 9px 10px;
+}
+
+.metric-label { font-size: 9px; color: var(--text-dim); letter-spacing: .1em; text-transform: uppercase; }
+.metric-val {
+  font-size: 18px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: -.01em;
+  margin-top: 2px;
+  line-height: 1.1;
+}
+.metric-unit { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+
+/* ── CONTROLS STRIP (center bottom) ─────────── */
+.controls-strip {
+  display: flex;
+  gap: 10px;
+}
+.controls-strip .btn {
+  flex: 1;
+  height: 100%;
+  justify-content: center;
+}
+
+/* ── MISSION LEFT LIST ───────────────────────── */
+.mission-left-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.mission-left-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.mission-left-row:last-child { border-bottom: none; }
+.mission-left-key {
+  font-size: 9px;
+  letter-spacing: .15em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.mission-left-val {
+  font-size: 15px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+}
+
+/* ── POSITION GRID ───────────────────────────── */
+.pos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.pos-cell {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 7px 9px;
+}
+.pos-label {
+  font-size: 8px;
+  letter-spacing: .15em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.pos-val {
+  font-size: 15px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--cyan);
+  margin-top: 3px;
+  line-height: 1;
+}
+
+/* ── MODE SELECTOR ─────────────────────────── */
+.mode-selector-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mode-selector-label {
+  font-size: 9px;
+  letter-spacing: .2em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.mode-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mode-toggle-side {
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  transition: color .2s;
+}
+.mode-toggle-side.active { color: var(--cyan); }
+.toggle-wrap {
+  position: relative;
+  width: 42px;
+  height: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.toggle-wrap input { display: none; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-hi);
+  border-radius: 11px;
+  transition: background .2s, border-color .2s;
+}
+.toggle-wrap input:checked ~ .toggle-track {
+  background: rgba(0,229,255,.12);
+  border-color: var(--cyan);
+}
+.toggle-thumb {
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: transform .2s, background .2s;
+}
+.toggle-wrap input:checked ~ .toggle-track .toggle-thumb {
+  transform: translateX(20px);
+  background: var(--cyan);
+}
+
+/* ── CONTROLS AREA ──────────────────────────── */
+.controls-area {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+}
+#autonomousControls { display: flex; gap: 10px; }
+#autonomousControls .btn { flex: 1; justify-content: center; }
+#teleopControls { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+.teleop-pad {
+  display: grid;
+  grid-template-areas: ". fwd ." "lft stp rgt" ". bwd .";
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(3, 40px);
+  gap: 5px;
+}
+.teleop-btn {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-mid);
+  font-size: 18px;
+  cursor: pointer;
+  user-select: none; -webkit-user-select: none;
+  transition: background .1s, border-color .1s, color .1s;
+}
+.teleop-btn:active { background: rgba(0,229,255,.1); border-color: var(--cyan); color: var(--cyan); }
+.teleop-btn.stop-btn:active { background: rgba(255,171,0,.1); border-color: var(--amber); color: var(--amber); }
+[data-area="fwd"] { grid-area: fwd; }
+[data-area="bwd"] { grid-area: bwd; }
+[data-area="lft"] { grid-area: lft; }
+[data-area="rgt"] { grid-area: rgt; }
+[data-area="stp"] { grid-area: stp; }
+
+.speed-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; max-width: 220px;
+}
+.speed-label { font-size: 9px; letter-spacing: .15em; color: var(--text-dim); text-transform: uppercase; flex-shrink: 0; }
+#teleopSpeed { flex: 1; accent-color: var(--cyan); cursor: pointer; }
+.speed-val { font-size: 10px; color: var(--cyan); font-family: var(--font-mono); min-width: 32px; text-align: right; flex-shrink: 0; }
+
+/* ── SHUTDOWN STRIP ─────────────────────────── */
+.shutdown-strip .btn { width: 100%; justify-content: center; }
+
+
+.left, .right {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  overflow-y: auto;
+}
+
+/* ── NOTIFICATION TOAST ─────────────────── */
+#toast {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-card);
+  border: 1px solid var(--border-hi);
+  border-radius: 5px;
+  padding: 9px 18px;
+  font-size: 11px;
+  letter-spacing: .05em;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity .25s, transform .25s;
+  z-index: 9000;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── SHUTDOWN OVERLAY ───────────────────── */
+#overlay {
+  position: fixed; inset: 0; z-index: 8000;
+  background: rgba(255,23,68,.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s;
+}
+#overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+.overlay-text {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+  color: var(--red);
+  text-shadow: 0 0 30px rgba(255,23,68,.6);
+  animation: flicker 1.2s ease-in-out infinite;
+}
+.overlay-sub {
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--text-dim);
+}
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  45% { opacity: .6; }
+  50% { opacity: .2; }
+  55% { opacity: .7; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="root">
+
+  <!-- ── TOPBAR ── -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-badge">TB3</span>
+      <span class="topbar-title">TurtleBot3</span>
+    </div>
+    <div class="topbar-sep"></div>
+    <span class="topbar-crumb">Autonomous Navigation Control</span>
+    <span class="topbar-crumb" id="modeLabel">› STANDBY</span>
+    <span class="topbar-time" id="clock">──:──:──</span>
+  </header>
+
+  <!-- ── LEFT PANEL ── -->
+  <aside class="left">
+
+    <!-- Telemetry (merged with System Status) -->
+    <div class="p-section">
+      <div class="p-label">Telemetry</div>
+      <div class="telem-list">
+        <div class="telem-row">
+          <span class="telem-key" style="display:flex;align-items:center;gap:6px;">
+            <span class="status-dot" id="dotROS"></span>ROSBridge
+          </span>
+          <span class="status-val" id="valROS">OFFLINE</span>
+        </div>
+        <div class="telem-row">
+          <span class="telem-key" style="display:flex;align-items:center;gap:6px;">
+            <span class="status-dot" id="dotExpl"></span>Exploration
+          </span>
+          <span class="status-val" id="valExpl">IDLE</span>
+        </div>
+        <div class="telem-row">
+          <span class="telem-key">Robot</span>
+          <span class="telem-val active" id="telRobot">ACTIVE</span>
+        </div>
+        <div class="telem-row">
+          <span class="telem-key">Navigation</span>
+          <span class="telem-val active" id="telNav">READY</span>
+        </div>
+        <div class="telem-row">
+          <span class="telem-key">SLAM</span>
+          <span class="telem-val active" id="telSlam">RUNNING</span>
+        </div>
+        <div class="telem-row">
+          <span class="telem-key">Map Coverage</span>
+          <span class="telem-val" id="telCoverage" style="background:none;border:none;color:var(--cyan)">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mission Info -->
+    <div class="p-section">
+      <div class="p-label">Mission</div>
+      <div class="mission-left-list">
+        <div class="mission-left-row">
+          <span class="mission-left-key">Mode</span>
+          <span class="mission-left-val" id="missionMode">STANDBY</span>
+        </div>
+        <div class="mission-left-row">
+          <span class="mission-left-key">Coverage</span>
+          <span class="mission-left-val" id="missionCoverage">0%</span>
+        </div>
+        <div class="mission-left-row">
+          <span class="mission-left-key">Map Updates</span>
+          <span class="mission-left-val" id="missionUpdates">0</span>
+        </div>
+        <div class="mission-left-row">
+          <span class="mission-left-key">Commands</span>
+          <span class="mission-left-val" id="missionCommands">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Position -->
+    <div class="p-section">
+      <div class="p-label">Position</div>
+      <div class="pos-grid">
+        <div class="pos-cell">
+          <div class="pos-label">Pos X</div>
+          <div class="pos-val" id="posX">--</div>
+        </div>
+        <div class="pos-cell">
+          <div class="pos-label">Pos Y</div>
+          <div class="pos-val" id="posY">--</div>
+        </div>
+        <div class="pos-cell">
+          <div class="pos-label">Yaw</div>
+          <div class="pos-val" id="yaw">--</div>
+        </div>
+        <div class="pos-cell">
+          <div class="pos-label">Heading</div>
+          <div class="pos-val" id="headingText">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event Log -->
+    <div class="p-section" style="padding-bottom:8px;">
+      <div class="p-label">Event Log</div>
+    </div>
+    <div class="log-area" id="logArea"></div>
+
+  </aside>
+
+  <!-- ── CENTER ── -->
+  <main class="center">
+    <div class="viz-grid">
+
+  <!-- Map + Camera -->
+
+  <div class="dual-view">
+
+    <div class="feed-card map-wrapper">
+
+      <span class="feed-label">
+        Occupancy Map
+      </span>
+
+      <span class="feed-badge"
+            id="mapBadge">
+        WAITING
+      </span>
+
+      <div class="corner-tr"></div>
+      <div class="corner-bl"></div>
+
+      <canvas id="mapCanvas"></canvas>
+
+    </div>
+
+    <div class="feed-card camera-wrapper">
+
+      <span class="feed-label">
+        Camera Feed
+      </span>
+
+      <span class="feed-badge">
+        LIVE
+      </span>
+
+      <div class="corner-tr"></div>
+      <div class="corner-bl"></div>
+
+      <img
+        id="cameraFeed"
+        src="http://localhost:8080/stream?topic=/camera/image_raw"
+      >
+
+    </div>
+
+  </div>
+
+  <!-- Mode Selector -->
+
+  <div class="mode-selector-card">
+    <span class="mode-selector-label">Mode</span>
+    <div class="mode-toggle-row">
+      <span class="mode-toggle-side active" id="labelAutonomous">Autonomous</span>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="modeToggle">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      </label>
+      <span class="mode-toggle-side" id="labelTeleop">Teleop</span>
+    </div>
+  </div>
+
+  <!-- Control Panels -->
+
+  <div class="controls-area">
+
+    <div id="autonomousControls">
+      <button class="btn btn-start" id="startExploration">
+        <span class="btn-icon">▶</span>
+        <span class="btn-label">Start Mission</span>
+      </button>
+      <button class="btn btn-stop" id="stopExploration">
+        <span class="btn-icon">■</span>
+        <span class="btn-label">Stop Mission</span>
+      </button>
+    </div>
+
+    <div id="teleopControls" style="display:none">
+      <div class="teleop-pad">
+        <button class="teleop-btn" id="teleopForward"  data-area="fwd">↑</button>
+        <button class="teleop-btn" id="teleopLeft"     data-area="lft">←</button>
+        <button class="teleop-btn stop-btn" id="teleopStop" data-area="stp">■</button>
+        <button class="teleop-btn" id="teleopRight"    data-area="rgt">→</button>
+        <button class="teleop-btn" id="teleopBackward" data-area="bwd">↓</button>
+      </div>
+      <div class="speed-row">
+        <span class="speed-label">Speed</span>
+        <input type="range" id="teleopSpeed" min="0.05" max="0.5" step="0.05" value="0.2">
+        <span class="speed-val" id="speedVal">0.20</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Shutdown -->
+
+  <div class="shutdown-strip">
+    <button class="btn btn-shutdown" id="shutdownSystem">
+      <span class="btn-icon">⏻</span>
+      <span class="btn-label">Shutdown System</span>
+    </button>
+  </div>
+
+</div>
+  </main>
+
+
+  <!-- ── RIGHT PANEL ── -->
+  <aside class="right">
+
+    <!-- Subsystems -->
+    <div class="p-section">
+      <div class="p-label">Subsystems</div>
+      <div class="sys-list">
+        <div class="sys-row"><span class="sys-name">Gazebo</span><span class="sys-pill up">UP</span></div>
+        <div class="sys-row"><span class="sys-name">SLAM Toolbox</span><span class="sys-pill up">UP</span></div>
+        <div class="sys-row"><span class="sys-name">Nav2</span><span class="sys-pill up">UP</span></div>
+        <div class="sys-row"><span class="sys-name">ROSBridge</span><span class="sys-pill" id="pillRosbridge">–</span></div>
+        <div class="sys-row"><span class="sys-name">Video Server</span><span class="sys-pill up">UP</span></div>
+        <div class="sys-row"><span class="sys-name">Explore-Lite</span><span class="sys-pill down" id="pillExplore">IDLE</span></div>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="p-section">
+      <div class="p-label">Metrics</div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-label">Uptime</div>
+          <div class="metric-val" id="metUptime">0</div>
+          <div class="metric-unit">minutes</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Map Cells</div>
+          <div class="metric-val" id="metCells">0</div>
+          <div class="metric-unit">known</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Cmd Count</div>
+          <div class="metric-val" id="metCmds">0</div>
+          <div class="metric-unit">issued</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Map Updates</div>
+          <div class="metric-val" id="metMapUpdates">0</div>
+          <div class="metric-unit">received</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Robot Model -->
+    <div class="p-section">
+      <div class="p-label">Robot</div>
+      <div class="telem-list">
+        <div class="telem-row">
+          <span class="telem-key">Model</span>
+          <span style="font-size:10px;color:var(--cyan)">Waffle</span>
+        </div>
+        <div class="telem-row">
+          <span class="telem-key">Sim Time</span>
+          <span style="font-size:10px;color:var(--text-mid)">Enabled</span>
+        </div>
+        <div class="telem-row">
+          <span class="telem-key">Cmd Vel</span>
+          <span style="font-size:10px;color:var(--text-mid)">/cmd_vel</span>
+        </div>
+        <div class="telem-row">
+          <span class="telem-key">Map Topic</span>
+          <span style="font-size:10px;color:var(--text-mid)">/map</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+</div><!-- .root -->
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Shutdown overlay -->
+<div id="overlay">
+  <div class="overlay-text">System Offline</div>
+  <div class="overlay-sub">All processes terminated</div>
+</div>
+
+<script>
+// ── CLOCK ─────────────────────────────────────
+(function() {
+  const el = document.getElementById('clock');
+  function tick() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    el.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  }
+  tick(); setInterval(tick, 1000);
+})();
+
+// ── UPTIME ────────────────────────────────────
+let uptimeMin = 0;
+setInterval(() => {
+  uptimeMin++;
+  document.getElementById('metUptime').textContent = uptimeMin;
+}, 60000);
+
+// ── METRICS ───────────────────────────────────
+let cmdCount = 0, mapUpdates = 0;
+
+// ── LOG ───────────────────────────────────────
+function log(msg, type) {
+  const area = document.getElementById('logArea');
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const t = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  const row = document.createElement('div');
+  row.className = 'log-entry';
+  row.innerHTML = '<span class="log-time">'+t+'</span><span class="log-msg '+(type||'')+'">'+msg+'</span>';
+  area.appendChild(row);
+  area.scrollTop = area.scrollHeight;
+}
+
+// ── TOAST ─────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── ROS ───────────────────────────────────────
+let ros = null;
+
+function connectROS() {
+  if (ros) { try { ros.close(); } catch(e) {} }
+
+  ros = new ROSLIB.Ros({ url: 'ws://localhost:9090' });
+
+  ros.on('connection', function() {
+    log('ROSBridge connected', 'ok');
+    toast('ROSBridge connected');
+    setRosStatus(true);
+    subscribeToMap();
+    subscribeToPose();
+  });
+
+  ros.on('error', function() {
+    log('ROSBridge connection error', 'err');
+    setRosStatus(false);
+  });
+
+  ros.on('close', function() {
+    log('ROSBridge closed — reconnecting…', 'warn');
+    setRosStatus(false);
+    setTimeout(connectROS, 2000);
+  });
+}
+
+function setRosStatus(online) {
+  const dot = document.getElementById('dotROS');
+  const val = document.getElementById('valROS');
+  const pill = document.getElementById('pillRosbridge');
+  if (online) {
+    dot.classList.add('on'); dot.classList.remove('warn');
+    val.textContent = 'ONLINE'; val.className = 'status-val ok';
+    pill.textContent = 'UP'; pill.className = 'sys-pill up';
+  } else {
+    dot.classList.remove('on'); dot.classList.add('warn');
+    val.textContent = 'RETRY'; val.className = 'status-val warn';
+    pill.textContent = 'DOWN'; pill.className = 'sys-pill down';
+  }
+}
+
+connectROS();
+
+// ── START EXPLORATION ─────────────────────────
+document.getElementById('startExploration').onclick = function() {
+
+  const dot  = document.getElementById('dotExpl');
+  const val  = document.getElementById('valExpl');
+  const pill = document.getElementById('pillExplore');
+  const mode = document.getElementById('modeLabel');
+
+  val.textContent = 'STARTING';
+  val.className = 'status-val warn';
+
+  dot.classList.add('warn');
+  dot.classList.remove('on');
+
+  log('Sending start_exploration…', 'info');
+
+  cmdCount++;
+
+  document.getElementById('metCmds').textContent = cmdCount;
+
+  fetch('/start_exploration')
+
+    .then(r => r.json())
+
+    .then(data => {
+
+      log(
+        data.message ||
+        'Exploration started',
+        'ok'
+      );
+
+      toast('Exploration Started');
+
+      val.textContent = 'RUNNING';
+      val.className = 'status-val ok';
+
+      dot.classList.add('on');
+      dot.classList.remove('warn');
+
+      pill.textContent = 'UP';
+      pill.className = 'sys-pill up';
+
+      mode.textContent = '› EXPLORING';
+
+      document.getElementById(
+        'telRobot'
+      ).textContent = 'MOVING';
+
+      // NEW MISSION PANEL UPDATE
+
+      const missionMode =
+        document.getElementById(
+          'missionMode'
+        );
+
+      if (missionMode) {
+
+        missionMode.textContent =
+          'AUTO';
+
+      }
+
+      const missionCommands =
+        document.getElementById(
+          'missionCommands'
+        );
+
+      if (missionCommands) {
+
+        missionCommands.textContent =
+          cmdCount;
+
+      }
+
+    })
+
+    .catch(err => {
+
+      log(
+        'start_exploration failed: ' +
+        err,
+        'err'
+      );
+
+      toast('Command Failed');
+
+      val.textContent = 'ERROR';
+
+      val.className = 'status-val';
+
+      dot.classList.remove(
+        'on',
+        'warn'
+      );
+
+    });
+
+};
+
+// ── STOP EXPLORATION ──────────────────────────
+document.getElementById('stopExploration').onclick = function() {
+
+  const dot  = document.getElementById('dotExpl');
+  const val  = document.getElementById('valExpl');
+  const pill = document.getElementById('pillExplore');
+  const mode = document.getElementById('modeLabel');
+
+  log('Sending stop_exploration…', 'info');
+
+  cmdCount++;
+
+  document.getElementById('metCmds').textContent = cmdCount;
+
+  fetch('/stop_exploration')
+
+    .then(r => r.json())
+
+    .then(data => {
+
+      log(
+        data.message ||
+        'Exploration stopped',
+        'ok'
+      );
+
+      toast('Exploration Stopped');
+
+      val.textContent = 'STOPPED';
+      val.className = 'status-val';
+
+      dot.classList.remove(
+        'on',
+        'warn'
+      );
+
+      pill.textContent = 'IDLE';
+      pill.className = 'sys-pill down';
+
+      mode.textContent = '› STANDBY';
+
+      document.getElementById(
+        'telRobot'
+      ).textContent = 'ACTIVE';
+
+      // NEW MISSION PANEL UPDATE
+
+      const missionMode =
+        document.getElementById(
+          'missionMode'
+        );
+
+      if (missionMode) {
+
+        missionMode.textContent =
+          'PAUSED';
+
+      }
+
+      const missionCommands =
+        document.getElementById(
+          'missionCommands'
+        );
+
+      if (missionCommands) {
+
+        missionCommands.textContent =
+          cmdCount;
+
+      }
+
+    })
+
+    .catch(err => {
+
+      log(
+        'stop_exploration failed: ' +
+        err,
+        'err'
+      );
+
+      toast('Command Failed');
+
+    });
+
+};
+// ── SHUTDOWN ──────────────────────────────────
+document.getElementById('shutdownSystem').onclick = function() {
+  if (!confirm('Shut down the entire robotics stack?')) return;
+
+  log('SHUTDOWN INITIATED', 'err');
+  toast('Shutting Down…');
+
+  document.getElementById('valROS').textContent = 'OFFLINE';
+  document.getElementById('valROS').className = 'status-val';
+  document.getElementById('dotROS').classList.remove('on','warn');
+  document.getElementById('valExpl').textContent = 'OFFLINE';
+  document.getElementById('dotExpl').classList.remove('on','warn');
+  document.getElementById('modeLabel').textContent = '› OFFLINE';
+
+  cmdCount++;
+  document.getElementById('metCmds').textContent = cmdCount;
+
+  fetch('/shutdown')
+    .then(r => r.text())
+    .then(data => {
+      log('System offline: ' + data, 'warn');
+      document.getElementById('overlay').classList.add('active');
+    })
+    .catch(err => {
+      log('Shutdown error: ' + err, 'err');
+      document.getElementById('overlay').classList.add('active');
+    });
+};
+
+// ── MAP ───────────────────────────────────────
+const canvas = document.getElementById('mapCanvas');
+const ctx    = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = Math.floor(rect.width);
+  canvas.height = Math.floor(rect.height);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function subscribeToMap() {
+  const topic = new ROSLIB.Topic({
+    ros,
+    name: '/map',
+    messageType: 'nav_msgs/OccupancyGrid'
+  });
+  topic.subscribe(function(msg) {
+    renderMap(msg);
+    document.getElementById('mapBadge').textContent = 'LIVE';
+    document.getElementById('mapBadge').style.color = 'var(--green)';
+  });
+}
+
+function renderMap(msg) {
+  const w = msg.info.width;
+  const h = msg.info.height;
+  const d = msg.data;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const sx = canvas.width  / w;
+  const sy = canvas.height / h;
+
+  let knownCells = 0;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const v = d[x + y * w];
+      if (v === -1)      ctx.fillStyle = '#0e1a24';  // unknown
+      else if (v === 0)  { ctx.fillStyle = '#1a3040'; knownCells++; }  // free
+      else               { ctx.fillStyle = '#00e5ff'; knownCells++; }  // occupied
+
+      ctx.fillRect(x * sx, (h - y) * sy, sx + 1, sy + 1);
+    }
+  }
+
+  mapUpdates++;
+  document.getElementById('metMapUpdates').textContent = mapUpdates;
+  document.getElementById('metCells').textContent = knownCells;
+
+  const pct = Math.round((knownCells / (w * h)) * 100);
+  document.getElementById('telCoverage').textContent = pct + '%';
+
+  document.getElementById(
+  'missionCoverage'
+  ).textContent = pct + '%';
+
+  document.getElementById(
+  'missionUpdates'
+  ).textContent = mapUpdates;
+}
+
+// ── POSE ──────────────────────────────────────
+function subscribeToPose() {
+  const topic = new ROSLIB.Topic({
+    ros,
+    name: '/odom',
+    messageType: 'nav_msgs/Odometry'
+  });
+  topic.subscribe(function(msg) {
+    const x = msg.pose.pose.position.x;
+    const y = msg.pose.pose.position.y;
+    const q = msg.pose.pose.orientation;
+
+    // quaternion → yaw
+    const yawRad = Math.atan2(
+      2 * (q.w * q.z + q.x * q.y),
+      1 - 2 * (q.y * q.y + q.z * q.z)
+    );
+    const yawDeg = (yawRad * 180 / Math.PI).toFixed(1);
+
+    const headingEl = document.getElementById('headingText');
+    const yawValue = parseFloat(yawDeg);
+    let heading = 'N';
+    if      ( yawValue >= -22.5  && yawValue <  22.5  ) { heading = 'E';  }
+    else if ( yawValue >=  22.5  && yawValue <  67.5  ) { heading = 'NE'; }
+    else if ( yawValue >=  67.5  && yawValue < 112.5  ) { heading = 'N';  }
+    else if ( yawValue >= 112.5  && yawValue < 157.5  ) { heading = 'NW'; }
+    else if ( yawValue >=  157.5 || yawValue < -157.5 ) { heading = 'W';  }
+    else if ( yawValue >= -157.5 && yawValue < -112.5 ) { heading = 'SW'; }
+    else if ( yawValue >= -112.5 && yawValue <  -67.5 ) { heading = 'S';  }
+    else if ( yawValue >=  -67.5 && yawValue <  -22.5 ) { heading = 'SE'; }
+    if (headingEl) { headingEl.textContent = heading; }
+
+    document.getElementById('posX').textContent = x.toFixed(3);
+    document.getElementById('posY').textContent = y.toFixed(3);
+    document.getElementById('yaw').textContent   = yawDeg + '°';
+  });
+}
+
+
+// ── MODE TOGGLE ───────────────────────────────
+document.getElementById('modeToggle').addEventListener('change', function() {
+  if (this.checked) {
+    // → TELEOP: stop exploration first (safety)
+    log('Switching to Teleop — stopping exploration…', 'warn');
+    fetch('/stop_exploration')
+      .then(r => r.json())
+      .catch(() => {})
+      .finally(() => applyTeleopMode());
+  } else {
+    // → AUTONOMOUS
+    applyAutonomousMode();
+  }
+});
+
+function applyTeleopMode() {
+  const dot  = document.getElementById('dotExpl');
+  const val  = document.getElementById('valExpl');
+  const pill = document.getElementById('pillExplore');
+
+  val.textContent = 'STOPPED'; val.className = 'status-val';
+  dot.classList.remove('on', 'warn');
+  pill.textContent = 'IDLE'; pill.className = 'sys-pill down';
+
+  document.getElementById('autonomousControls').style.display = 'none';
+  document.getElementById('teleopControls').style.display    = 'flex';
+
+  document.getElementById('missionMode').textContent = 'TELEOP';
+  document.getElementById('modeLabel').textContent   = '› TELEOP';
+
+  document.getElementById('labelAutonomous').classList.remove('active');
+  document.getElementById('labelTeleop').classList.add('active');
+
+  log('Teleoperation Mode Enabled', 'warn');
+  toast('Teleop Mode Active');
+}
+
+function applyAutonomousMode() {
+  publishVelocity(0, 0); // safety stop before handing back
+  document.getElementById('teleopControls').style.display    = 'none';
+  document.getElementById('autonomousControls').style.display = '';
+
+  document.getElementById('missionMode').textContent = 'IDLE';
+  document.getElementById('modeLabel').textContent   = '› STANDBY';
+
+  document.getElementById('labelTeleop').classList.remove('active');
+  document.getElementById('labelAutonomous').classList.add('active');
+
+  log('Autonomous Mode Enabled', 'info');
+  toast('Autonomous Mode Active');
+}
+
+// ── TELEOP VELOCITY ───────────────────────────
+let _cmdVelTopic = null;
+let _cmdVelRosRef = null;
+
+function getCmdVelTopic() {
+  if (!ros) return null;
+  if (_cmdVelTopic && _cmdVelRosRef === ros) return _cmdVelTopic;
+  _cmdVelTopic = new ROSLIB.Topic({
+    ros,
+    name: '/cmd_vel',
+    messageType: 'geometry_msgs/Twist'
+  });
+  _cmdVelRosRef = ros;
+  return _cmdVelTopic;
+}
+
+function publishVelocity(linear, angular) {
+  const topic = getCmdVelTopic();
+  if (!topic) return;
+  topic.publish(new ROSLIB.Message({
+    linear:  { x: linear,  y: 0, z: 0 },
+    angular: { x: 0, y: 0, z: angular }
+  }));
+}
+
+// Speed slider
+const _speedSlider = document.getElementById('teleopSpeed');
+const _speedVal    = document.getElementById('speedVal');
+_speedSlider.addEventListener('input', function() {
+  _speedVal.textContent = parseFloat(this.value).toFixed(2);
+});
+function getSpeed() { return parseFloat(_speedSlider.value); }
+
+// D-pad bindings
+[
+  { id: 'teleopForward',  lin:  1, ang:  0 },
+  { id: 'teleopBackward', lin: -1, ang:  0 },
+  { id: 'teleopLeft',     lin:  0, ang:  1 },
+  { id: 'teleopRight',    lin:  0, ang: -1 },
+  { id: 'teleopStop',     lin:  0, ang:  0 },
+].forEach(({ id, lin, ang }) => {
+  const btn = document.getElementById(id);
+  const press   = (e) => { e.preventDefault(); publishVelocity(lin * getSpeed(), ang * getSpeed()); };
+  const release = ()  => publishVelocity(0, 0);
+  btn.addEventListener('mousedown',  press);
+  btn.addEventListener('mouseup',    release);
+  btn.addEventListener('mouseleave', release);
+  btn.addEventListener('touchstart', press,   { passive: false });
+  btn.addEventListener('touchend',   release);
+  btn.addEventListener('touchcancel',release);
+});
+
+log('Dashboard initialized', 'info');
+log('Connecting to ROSBridge…', 'info');
+</script>
+</body>
+</html>
