@@ -1152,6 +1152,12 @@ setInterval(() => {
 // ── METRICS ───────────────────────────────────
 let cmdCount = 0, mapUpdates = 0;
 
+// ── TRAJECTORY STATE ──────────────────────────
+let robotPath = [];
+let pathDistanceMeters = 0;
+let latestMapInfo = null;
+let latestRobotPose = null;
+
 // ── LOG ───────────────────────────────────────
 function log(msg, type) {
   const area = document.getElementById('logArea');
@@ -1459,6 +1465,8 @@ function subscribeToMap() {
 }
 
 function renderMap(msg) {
+  latestMapInfo = msg.info;
+
   const w = msg.info.width;
   const h = msg.info.height;
   const d = msg.data;
@@ -1480,6 +1488,9 @@ function renderMap(msg) {
     }
   }
 
+  drawTrajectoryOverlay(msg.info);
+  drawRobotMarker(msg.info);
+
   mapUpdates++;
   document.getElementById('metMapUpdates').textContent = mapUpdates;
   document.getElementById('metCells').textContent = knownCells;
@@ -1496,6 +1507,139 @@ function renderMap(msg) {
   ).textContent = mapUpdates;
 }
 
+// ── TRAJECTORY HELPERS ─────────────────────────
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function worldToCanvas(worldX, worldY, info) {
+  const originX = info.origin.position.x;
+  const originY = info.origin.position.y;
+  const resolution = info.resolution || 1;
+  const w = info.width;
+  const h = info.height;
+  const sx = canvas.width / w;
+  const sy = canvas.height / h;
+
+  const mapX = (worldX - originX) / resolution;
+  const mapY = (worldY - originY) / resolution;
+
+  return {
+    x: mapX * sx,
+    y: (h - mapY) * sy
+  };
+}
+
+function appendTrajectoryPoint(worldX, worldY) {
+  const point = { x: worldX, y: worldY };
+
+  if (robotPath.length === 0) {
+    robotPath.push(point);
+    return;
+  }
+
+  const lastPoint = robotPath[robotPath.length - 1];
+  const travelled = distance(lastPoint, point);
+
+  if (travelled <= 0.05) return;
+
+  robotPath.push(point);
+  pathDistanceMeters += travelled;
+}
+
+function clearPath() {
+  robotPath = [];
+  pathDistanceMeters = 0;
+}
+
+function drawTrajectoryOverlay(info) {
+  if (!robotPath || robotPath.length < 2 || !info) return;
+
+  const total = robotPath.length - 1;
+  const recentCount = Math.min(10, total);
+  const recentStart = Math.max(0, total - recentCount);
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // Subtle glow for the trail (reduced intensity and blur)
+  ctx.shadowColor = 'rgba(0,229,255,0.36)';
+  ctx.shadowBlur = 3;
+
+  for (let i = 0; i < total; i++) {
+    const start = robotPath[i];
+    const end = robotPath[i + 1];
+    const startPx = worldToCanvas(start.x, start.y, info);
+    const endPx = worldToCanvas(end.x, end.y, info);
+
+    const ageRatio = total > 0 ? i / total : 0;
+    const isRecent = i >= recentStart;
+    // Fade and thickness: older segments are thinner and dimmer;
+    // recent segments are slightly thicker but kept modest to avoid overpowering the map.
+    const alpha = isRecent
+      ? 0.60 + 0.35 * ((i - recentStart) / Math.max(1, recentCount - 1))
+      : 0.12 + 0.25 * ageRatio;
+    const width = isRecent
+      ? 1.6 + 0.6 * ((i - recentStart) / Math.max(1, recentCount - 1))
+      : 0.8 + 0.6 * ageRatio;
+
+    ctx.strokeStyle = `rgba(0, 229, 255, ${alpha.toFixed(2)})`;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(startPx.x, startPx.y);
+    ctx.lineTo(endPx.x, endPx.y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawRobotMarker(info) {
+  if (!latestRobotPose || !info) return;
+
+  const pos = worldToCanvas(latestRobotPose.x, latestRobotPose.y, info);
+  const yaw = latestRobotPose.yaw || 0;
+  const arrowLength = 16;
+  const arrowHead = 6;
+  const headAngle = Math.PI / 6;
+
+  ctx.save();
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur = 8;
+
+  ctx.strokeStyle = '#00e5ff';
+  ctx.fillStyle = '#00e676';
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tipX = pos.x + Math.cos(yaw) * arrowLength;
+  const tipY = pos.y - Math.sin(yaw) * arrowLength;
+  const leftX = tipX - Math.cos(yaw - headAngle) * arrowHead;
+  const leftY = tipY - Math.sin(yaw - headAngle) * arrowHead;
+  const rightX = tipX - Math.cos(yaw + headAngle) * arrowHead;
+  const rightY = tipY - Math.sin(yaw + headAngle) * arrowHead;
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.fillStyle = '#ffffff';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+  ctx.lineTo(tipX, tipY);
+  ctx.lineTo(leftX, leftY);
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(rightX, rightY);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
 // ── POSE ──────────────────────────────────────
 function subscribeToPose() {
   const topic = new ROSLIB.Topic({
@@ -1508,12 +1652,14 @@ function subscribeToPose() {
     const y = msg.pose.pose.position.y;
     const q = msg.pose.pose.orientation;
 
-    // quaternion → yaw
     const yawRad = Math.atan2(
       2 * (q.w * q.z + q.x * q.y),
       1 - 2 * (q.y * q.y + q.z * q.z)
     );
     const yawDeg = (yawRad * 180 / Math.PI).toFixed(1);
+
+    latestRobotPose = { x, y, yaw: yawRad };
+    appendTrajectoryPoint(x, y);
 
     const headingEl = document.getElementById('headingText');
     const yawValue = parseFloat(yawDeg);
@@ -1531,6 +1677,11 @@ function subscribeToPose() {
     document.getElementById('posX').textContent = x.toFixed(3);
     document.getElementById('posY').textContent = y.toFixed(3);
     document.getElementById('yaw').textContent   = yawDeg + '°';
+
+    if (latestMapInfo) {
+      drawTrajectoryOverlay(latestMapInfo);
+      drawRobotMarker(latestMapInfo);
+    }
   });
 }
 
