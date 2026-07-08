@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TurtleBot3 — Autonomous Control</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="[fonts.googleapis.com](https://fonts.googleapis.com)">
+<link rel="preconnect" href="[fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+<link href="[fonts.googleapis.com](https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap)" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
 <style>
 
@@ -33,6 +33,7 @@
   --amber-dim: rgba(255,171,0,.08);
   --red:       #ff1744;
   --red-dim:   rgba(255,23,68,.08);
+  --grey:      #8a98a8;
 
   --font-display: 'Syne', sans-serif;
   --font-mono:    'IBM Plex Mono', monospace;
@@ -65,7 +66,7 @@ body::before {
 /* ── ROOT GRID ─────────────────────────────── */
 .root {
   display: grid;
-  grid-template-columns: 260px 1fr 220px;
+  grid-template-columns: 260px minmax(0, 1fr) 300px;
   grid-template-rows: 48px 1fr;
   height: 100vh;
   gap: 0;
@@ -264,6 +265,10 @@ body::before {
 
 .btn:hover { color: #fff; }
 .btn:active { transform: scale(.98); }
+.btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
 
 /* Start */
 .btn-start {
@@ -364,6 +369,60 @@ body::before {
 .log-msg.err  { color: var(--red); }
 
 /* ── CENTER: VISUALIZATIONS ──────────────── */
+.mission-mode-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(6,9,13,.78), rgba(6,9,13,.92));
+  border-radius: 6px;
+}
+.mission-mode-overlay.show { display: flex; }
+.mission-mode-panel {
+  width: min(92%, 360px);
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(0,229,255,.16);
+  border-radius: 6px;
+  background: rgba(16,24,32,.92);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+}
+.mission-mode-pill {
+  font-size: 9px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 10px;
+}
+.mission-mode-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.mission-mode-name {
+  font-size: 14px;
+  font-family: var(--font-display);
+  color: var(--cyan);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+.mission-mode-copy {
+  font-size: 11px;
+  color: var(--text-mid);
+  line-height: 1.5;
+}
+.mission-mode-meta {
+  margin-top: 10px;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
 .viz-grid {
   flex: 1;
   display: grid;
@@ -503,6 +562,17 @@ body::before {
   background: rgba(6,9,13,.6);
   padding: 2px 6px;
   border-radius: 2px;
+}
+
+/* Secondary small status line under the feed label */
+.feed-sub {
+  display: block;
+  position: absolute;
+  top: 26px; left: 12px;
+  z-index: 4;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: .02em;
 }
 
 .feed-badge {
@@ -670,51 +740,59 @@ body::before {
   color: var(--text-dim);
   text-transform: uppercase;
 }
-.mode-toggle-row {
+.mode-seg {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
 }
-.mode-toggle-side {
-  font-size: 10px;
-  letter-spacing: .1em;
-  text-transform: uppercase;
+.mode-seg-btn {
+  flex: 1;
+  height: 26px;
+  padding: 0 10px;
+  background: var(--bg-card);
+  border: none;
+  border-right: 1px solid var(--border);
   color: var(--text-dim);
-  transition: color .2s;
-}
-.mode-toggle-side.active { color: var(--cyan); }
-.toggle-wrap {
-  position: relative;
-  width: 42px;
-  height: 22px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
   cursor: pointer;
-  flex-shrink: 0;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
 }
-.toggle-wrap input { display: none; }
-.toggle-track {
+.mode-seg-btn:last-child { border-right: none; }
+.mode-seg-btn:hover { color: var(--text); background: rgba(0,229,255,.04); }
+.mode-seg-btn.active {
+  background: rgba(0,229,255,.12);
+  color: var(--cyan);
+}
+
+/* ── SAVED MAPS GATING ──────────────────────── */
+.saved-maps-panel {
+  position: relative;
+}
+.saved-maps-panel.disabled {
+  opacity: 0.32;
+  pointer-events: none;
+}
+.saved-maps-overlay {
+  display: none;
   position: absolute;
   inset: 0;
-  background: var(--bg-card);
-  border: 1px solid var(--border-hi);
-  border-radius: 11px;
-  transition: background .2s, border-color .2s;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  letter-spacing: .18em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  background: rgba(6,9,13,.55);
+  z-index: 10;
+  border-radius: 4px;
 }
-.toggle-wrap input:checked ~ .toggle-track {
-  background: rgba(0,229,255,.12);
-  border-color: var(--cyan);
-}
-.toggle-thumb {
-  position: absolute;
-  top: 4px; left: 4px;
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: var(--text-dim);
-  transition: transform .2s, background .2s;
-}
-.toggle-wrap input:checked ~ .toggle-track .toggle-thumb {
-  transform: translateX(20px);
-  background: var(--cyan);
-}
+.saved-maps-panel.disabled .saved-maps-overlay { display: flex; }
 
 /* ── CONTROLS AREA ──────────────────────────── */
 .controls-area {
@@ -726,6 +804,35 @@ body::before {
 #autonomousControls { display: flex; gap: 10px; }
 #autonomousControls .btn { flex: 1; justify-content: center; }
 #teleopControls { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#missionControls { display: none; flex-direction: column; gap: 10px; }
+
+.mission-loaded-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.mission-loaded-key {
+  font-size: 9px;
+  letter-spacing: .15em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.mission-loaded-val {
+  font-size: 11px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--cyan);
+  text-align: right;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mission-loaded-val.empty { color: var(--text-dim); font-weight: 400; }
 
 .teleop-pad {
   display: grid;
@@ -763,7 +870,6 @@ body::before {
 
 /* ── SHUTDOWN STRIP ─────────────────────────── */
 .shutdown-strip .btn { width: 100%; justify-content: center; }
-
 
 .left, .right {
   scrollbar-width: thin;
@@ -834,13 +940,191 @@ body::before {
   55% { opacity: .7; }
 }
 
+/* ── SAVED MAPS ───────────────────────────── */
+#mapsList { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.map-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  width: 100%;
+  display: block;
+  cursor: pointer;
+}
+.map-item:hover {
+  background: rgba(0,229,255,0.02);
+  border-color: var(--border-hi);
+}
+.map-item.selected {
+  background: rgba(0,229,255,0.06);
+  border-color: var(--cyan);
+  box-shadow: inset 0 0 0 1px rgba(0,229,255,0.04);
+}
+.map-name {
+  font-size: 11px;
+  color: var(--text-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  display: block;
+  width: 100%;
+}
+.map-actions { display: none; }
+
+.map-loaded-badge {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--green);
+  background: rgba(0,230,118,.06);
+  border: 1px solid rgba(0,230,118,.12);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.map-item.loaded { border-color: rgba(0,230,118,.28); }
+
+#mapsSelected { margin-top: 10px; }
+.maps-selected-label { font-size: 9px; letter-spacing: .2em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 6px; }
+.map-selected-name { font-size: 13px; color: var(--text); font-family: var(--font-display); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.selected-actions { display: flex; flex-direction: column; gap: 8px; }
+.selected-actions .btn { width: 100%; justify-content: center; }
+
+/* ── WAYPOINT PANEL ───────────────────────── */
+.mission-waypoint-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.mission-waypoint-title {
+  font-size: 9px;
+  letter-spacing: .18em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.mission-waypoint-status {
+  font-size: 10px;
+  color: var(--text-mid);
+  margin-bottom: 8px;
+}
+
+.waypoint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.waypoint-item {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.waypoint-item.completed {
+  border-color: rgba(138,152,168,.35);
+}
+
+.waypoint-item.current {
+  border-color: rgba(0,230,118,.35);
+}
+
+.waypoint-item.pending {
+  border-color: rgba(255,171,0,.35);
+}
+
+.waypoint-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.waypoint-label {
+  font-size: 11px;
+  color: var(--text);
+}
+
+.waypoint-label.completed { color: var(--grey); }
+.waypoint-label.current { color: var(--green); }
+.waypoint-label.pending { color: var(--amber); }
+
+.waypoint-coords {
+  font-size: 10px;
+  color: var(--text-mid);
+  margin-top: 4px;
+}
+
+.waypoint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.waypoint-mini-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text-mid);
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.waypoint-mini-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.waypoint-empty {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.route-status-banner {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 10px;
+  color: var(--text-mid);
+}
+
+.route-status-banner.running {
+  border-color: rgba(0,230,118,.35);
+  color: var(--green);
+}
+
+.route-status-banner.failed {
+  border-color: rgba(255,23,68,.35);
+  color: var(--red);
+}
+
+.route-status-banner.completed {
+  border-color: rgba(138,152,168,.35);
+  color: var(--grey);
+}
+
+.route-status-banner.idle,
+.route-status-banner.stopped {
+  border-color: rgba(255,171,0,.25);
+  color: var(--amber);
+}
 </style>
 </head>
 <body>
 
 <div class="root">
 
-  <!-- ── TOPBAR ── -->
   <header class="topbar">
     <div class="topbar-brand">
       <span class="topbar-badge">TB3</span>
@@ -852,10 +1136,8 @@ body::before {
     <span class="topbar-time" id="clock">──:──:──</span>
   </header>
 
-  <!-- ── LEFT PANEL ── -->
   <aside class="left">
 
-    <!-- Telemetry (merged with System Status) -->
     <div class="p-section">
       <div class="p-label">Telemetry</div>
       <div class="telem-list">
@@ -890,7 +1172,6 @@ body::before {
       </div>
     </div>
 
-    <!-- Mission Info -->
     <div class="p-section">
       <div class="p-label">Mission</div>
       <div class="mission-left-list">
@@ -910,10 +1191,13 @@ body::before {
           <span class="mission-left-key">Commands</span>
           <span class="mission-left-val" id="missionCommands">0</span>
         </div>
+        <div class="mission-left-row">
+          <span class="mission-left-key">Loaded Map</span>
+          <span class="mission-left-val" id="missionLoadedMap" style="color:var(--text-dim);font-size:12px;">None</span>
+        </div>
       </div>
     </div>
 
-    <!-- Position -->
     <div class="p-section">
       <div class="p-label">Position</div>
       <div class="pos-grid">
@@ -936,7 +1220,6 @@ body::before {
       </div>
     </div>
 
-    <!-- Event Log -->
     <div class="p-section" style="padding-bottom:8px;">
       <div class="p-label">Event Log</div>
     </div>
@@ -944,117 +1227,179 @@ body::before {
 
   </aside>
 
-  <!-- ── CENTER ── -->
   <main class="center">
     <div class="viz-grid">
 
-  <!-- Map + Camera -->
+      <div class="dual-view">
 
-  <div class="dual-view">
+        <div class="feed-card map-wrapper">
 
-    <div class="feed-card map-wrapper">
+          <span class="feed-label">
+            Occupancy Map
+          </span>
 
-      <span class="feed-label">
-        Occupancy Map
-      </span>
+          <span id="occupancyStatus" class="feed-sub">No Map Loaded</span>
 
-      <span class="feed-badge"
-            id="mapBadge">
-        WAITING
-      </span>
+          <div id="missionModeOverlay" class="mission-mode-overlay" aria-live="polite">
+            <div class="mission-mode-panel">
+              <div class="mission-mode-pill">Mission Mode</div>
+              <div class="mission-mode-title" id="missionModeTitle">No Map Selected</div>
+              <div class="mission-mode-name" id="missionModeName">Select a map from the Saved Maps panel.</div>
+              <div class="mission-mode-copy" id="missionModeCopy">Localization is inactive until the future stack is connected.</div>
+              <div class="mission-mode-meta" id="missionModeMeta">Localization Status: INACTIVE</div>
+            </div>
+          </div>
 
-      <div class="corner-tr"></div>
-      <div class="corner-bl"></div>
+          <span class="feed-badge" id="mapBadge">
+            WAITING
+          </span>
 
-      <canvas id="mapCanvas"></canvas>
+          <div class="corner-tr"></div>
+          <div class="corner-bl"></div>
 
-    </div>
+          <canvas id="mapCanvas"></canvas>
 
-    <div class="feed-card camera-wrapper">
+        </div>
 
-      <span class="feed-label">
-        Camera Feed
-      </span>
+        <div class="feed-card camera-wrapper">
 
-      <span class="feed-badge">
-        LIVE
-      </span>
+          <span class="feed-label">
+            Camera Feed
+          </span>
 
-      <div class="corner-tr"></div>
-      <div class="corner-bl"></div>
+          <span class="feed-badge">
+            LIVE
+          </span>
 
-      <img
-        id="cameraFeed"
-        src="http://localhost:8080/stream?topic=/camera/image_raw"
-      >
+          <div class="corner-tr"></div>
+          <div class="corner-bl"></div>
 
-    </div>
+          <img
+            id="cameraFeed"
+            src="http://localhost:8080/stream?topic=/camera/image_raw"
+          >
 
-  </div>
 
-  <!-- Mode Selector -->
+        </div>
 
-  <div class="mode-selector-card">
-    <span class="mode-selector-label">Mode</span>
-    <div class="mode-toggle-row">
-      <span class="mode-toggle-side active" id="labelAutonomous">Autonomous</span>
-      <label class="toggle-wrap">
-        <input type="checkbox" id="modeToggle">
-        <div class="toggle-track"><div class="toggle-thumb"></div></div>
-      </label>
-      <span class="mode-toggle-side" id="labelTeleop">Teleop</span>
-    </div>
-  </div>
-
-  <!-- Control Panels -->
-
-  <div class="controls-area">
-
-    <div id="autonomousControls">
-      <button class="btn btn-start" id="startExploration">
-        <span class="btn-icon">▶</span>
-        <span class="btn-label">Start Mission</span>
-      </button>
-      <button class="btn btn-stop" id="stopExploration">
-        <span class="btn-icon">■</span>
-        <span class="btn-label">Stop Mission</span>
-      </button>
-    </div>
-
-    <div id="teleopControls" style="display:none">
-      <div class="teleop-pad">
-        <button class="teleop-btn" id="teleopForward"  data-area="fwd">↑</button>
-        <button class="teleop-btn" id="teleopLeft"     data-area="lft">←</button>
-        <button class="teleop-btn stop-btn" id="teleopStop" data-area="stp">■</button>
-        <button class="teleop-btn" id="teleopRight"    data-area="rgt">→</button>
-        <button class="teleop-btn" id="teleopBackward" data-area="bwd">↓</button>
       </div>
-      <div class="speed-row">
-        <span class="speed-label">Speed</span>
-        <input type="range" id="teleopSpeed" min="0.05" max="0.5" step="0.05" value="0.2">
-        <span class="speed-val" id="speedVal">0.20</span>
+
+      <div class="mode-selector-card">
+        <span class="mode-selector-label">Mode</span>
+        <div class="mode-seg" id="modeSeg">
+          <button class="mode-seg-btn active" data-mode="autonomous">Autonomous</button>
+          <button class="mode-seg-btn" data-mode="teleop">Teleop</button>
+          <button class="mode-seg-btn" data-mode="mission">Mission</button>
+        </div>
       </div>
+
+      <div class="controls-area">
+
+        <div id="autonomousControls">
+          <button class="btn btn-start" id="startExploration">
+            <span class="btn-icon">▶</span>
+            <span class="btn-label">Start Mission</span>
+          </button>
+          <button class="btn btn-stop" id="stopExploration">
+            <span class="btn-icon">■</span>
+            <span class="btn-label">Stop Mission</span>
+          </button>
+        </div>
+
+        <div id="teleopControls" style="display:none">
+          <div class="teleop-pad">
+            <button class="teleop-btn" id="teleopForward" data-area="fwd">↑</button>
+            <button class="teleop-btn" id="teleopLeft" data-area="lft">←</button>
+            <button class="teleop-btn stop-btn" id="teleopStop" data-area="stp">■</button>
+            <button class="teleop-btn" id="teleopRight" data-area="rgt">→</button>
+            <button class="teleop-btn" id="teleopBackward" data-area="bwd">↓</button>
+          </div>
+          <div class="speed-row">
+            <span class="speed-label">Speed</span>
+            <input type="range" id="teleopSpeed" min="0.05" max="0.5" step="0.05" value="0.2">
+            <span class="speed-val" id="speedVal">0.20</span>
+          </div>
+        </div>
+
+        <div id="missionControls">
+          <div class="mission-loaded-row">
+            <span class="mission-loaded-key">Loaded Map</span>
+            <span class="mission-loaded-val empty" id="missionCtrlMapName">NONE</span>
+          </div>
+          <div class="mission-loaded-row">
+            <span class="mission-loaded-key">Localization</span>
+            <span class="mission-loaded-val empty" id="missionCtrlLocStatus">INACTIVE</span>
+          </div>
+
+          <div class="controls-strip" style="margin-top:10px;">
+            <button class="btn btn-start" id="setInitialPoseBtn">
+              <span class="btn-label">Set Initial Pose</span>
+            </button>
+            <button class="btn btn-start" id="enableNavClickBtn">
+              <span class="btn-label">Navigate by Click</span>
+            </button>
+            <button class="btn btn-start" id="enableWaypointMissionBtn">
+              <span class="btn-label">Waypoint Mission</span>
+            </button>
+          </div>
+
+          <div class="controls-strip">
+            <button class="btn btn-start" id="startRouteBtn">
+              <span class="btn-label">Start Route</span>
+            </button>
+            <button class="btn btn-stop" id="stopRouteBtn">
+              <span class="btn-label">Stop Route</span>
+            </button>
+            <button class="btn btn-stop" id="cancelNavBtn">
+              <span class="btn-label">Cancel Goal</span>
+            </button>
+          </div>
+
+          <div class="mission-loaded-row">
+            <span class="mission-loaded-key">Click Mode</span>
+            <span class="mission-loaded-val empty" id="missionClickModeVal">NAVIGATE</span>
+          </div>
+
+          <div class="mission-loaded-row">
+            <span class="mission-loaded-key">Nav State</span>
+            <span class="mission-loaded-val empty" id="missionNavState">IDLE</span>
+          </div>
+
+          <div id="routeStatusBanner" class="route-status-banner idle">Route idle</div>
+
+          <div id="missionWaypointPanel" class="mission-waypoint-panel">
+            <div class="mission-waypoint-title">Waypoints</div>
+            <div id="missionWaypointStatus" class="mission-waypoint-status">Waypoint mission inactive</div>
+            <div id="missionWaypointList" class="waypoint-list"></div>
+          </div>
+
+          <div id="missionNavGoal" style="display:none"></div>
+        </div>
+
+      </div>
+
+      <div class="shutdown-strip">
+        <button class="btn btn-shutdown" id="shutdownSystem">
+          <span class="btn-icon">⏻</span>
+          <span class="btn-label">Shutdown System</span>
+        </button>
+      </div>
+
     </div>
-
-  </div>
-
-  <!-- Shutdown -->
-
-  <div class="shutdown-strip">
-    <button class="btn btn-shutdown" id="shutdownSystem">
-      <span class="btn-icon">⏻</span>
-      <span class="btn-label">Shutdown System</span>
-    </button>
-  </div>
-
-</div>
   </main>
 
-
-  <!-- ── RIGHT PANEL ── -->
   <aside class="right">
 
-    <!-- Subsystems -->
+    <div class="p-section" id="missionStatusPanel">
+      <div class="p-label">Mission Status</div>
+      <div class="status-list">
+        <div class="status-item">
+          <div class="status-name">Map</div>
+          <div class="status-val" id="missionStatusVal">No Map Loaded</div>
+        </div>
+      </div>
+    </div>
+
     <div class="p-section">
       <div class="p-label">Subsystems</div>
       <div class="sys-list">
@@ -1064,10 +1409,11 @@ body::before {
         <div class="sys-row"><span class="sys-name">ROSBridge</span><span class="sys-pill" id="pillRosbridge">–</span></div>
         <div class="sys-row"><span class="sys-name">Video Server</span><span class="sys-pill up">UP</span></div>
         <div class="sys-row"><span class="sys-name">Explore-Lite</span><span class="sys-pill down" id="pillExplore">IDLE</span></div>
+        <div class="sys-row"><span class="sys-name">Map Server</span><span class="sys-pill down" id="pillMapServer">IDLE</span></div>
+        <div class="sys-row"><span class="sys-name">AMCL</span><span class="sys-pill down" id="pillAmcl">INACTIVE</span></div>
       </div>
     </div>
 
-    <!-- Metrics -->
     <div class="p-section">
       <div class="p-label">Metrics</div>
       <div class="metric-grid">
@@ -1094,7 +1440,6 @@ body::before {
       </div>
     </div>
 
-    <!-- Robot Model -->
     <div class="p-section">
       <div class="p-label">Robot</div>
       <div class="telem-list">
@@ -1117,14 +1462,30 @@ body::before {
       </div>
     </div>
 
+    <div class="p-section saved-maps-panel disabled" id="savedMapsPanel">
+      <div class="saved-maps-overlay">⊘ Mission Mode Required</div>
+      <div class="p-label">Saved Maps</div>
+      <div id="mapsList">Loading maps...</div>
+      <div id="mapsSelected">
+        <div class="maps-selected-label">Selected</div>
+        <div class="map-selected-name" id="selectedName">None</div>
+        <div class="selected-actions">
+          <button class="btn btn-start" id="loadMapBtn" disabled>
+            <span class="btn-icon">↓</span>
+            <span class="btn-label">Load Map</span>
+          </button>
+          <button class="btn" id="previewBtn" disabled>Preview</button>
+          <button class="btn btn-shutdown" id="deleteBtn" disabled>Delete</button>
+        </div>
+      </div>
+    </div>
+
   </aside>
 
-</div><!-- .root -->
+</div>
 
-<!-- Toast -->
 <div id="toast"></div>
 
-<!-- Shutdown overlay -->
 <div id="overlay">
   <div class="overlay-text">System Offline</div>
   <div class="overlay-sub">All processes terminated</div>
@@ -1149,14 +1510,57 @@ setInterval(() => {
   document.getElementById('metUptime').textContent = uptimeMin;
 }, 60000);
 
+// ── ROS TOPIC CONSTANTS ───────────────────────
+const ROS_TOPICS = {
+  map:      '/map',
+  odom:     '/odom',
+  amclPose: '/amcl_pose',
+  cmdVel:   '/cmd_vel',
+  initPose: '/initialpose',
+};
+
 // ── METRICS ───────────────────────────────────
 let cmdCount = 0, mapUpdates = 0;
+
+// ── MODE STATE ────────────────────────────────
+let currentMode = 'autonomous';
 
 // ── TRAJECTORY STATE ──────────────────────────
 let robotPath = [];
 let pathDistanceMeters = 0;
 let latestMapInfo = null;
 let latestRobotPose = null;
+let selectedMapName = null;
+let selectedMap = null;
+let trajectoryEnabled = true;
+
+// ── MAP RENDER STATE ──────────────────────────
+let mapRenderMode = 'slam';
+let loadedMap = null;
+
+// ── POSE SOURCE ───────────────────────────────
+let poseSource = 'odom';
+let localizationActive = false;
+let _poseTopicSub = null;
+
+// ── MISSION STATE ─────────────────────────────
+let navigationGoal = null;
+let clickNavEnabled = false;
+let missionClickMode = 'navigate';      // navigate | initialpose | waypoint_add | waypoint_insert_before | waypoint_insert_after
+let missionGoal = null;
+let missionInitialPose = null;
+
+let waypointMissionEnabled = false;
+let routeStatus = {
+  route_state: 'idle',
+  message: '',
+  active_waypoint_index: null,
+  completed_waypoint_indices: [],
+  failure: null,
+  editing_locked: false,
+  waypoints: []
+};
+let pendingInsert = null;
 
 // ── LOG ───────────────────────────────────────
 function log(msg, type) {
@@ -1180,10 +1584,21 @@ function toast(msg) {
 }
 
 // ── ROS ───────────────────────────────────────
+
+
 let ros = null;
 
 function connectROS() {
-  if (ros) { try { ros.close(); } catch(e) {} }
+  if (typeof ROSLIB === 'undefined') {
+    log('ROSLIB failed to load', 'err');
+    setRosStatus(false);
+    toast('ROS library failed to load');
+    return;
+  }
+
+  if (ros) {
+    try { ros.close(); } catch (e) {}
+  }
 
   ros = new ROSLIB.Ros({ url: 'ws://localhost:9090' });
 
@@ -1201,11 +1616,12 @@ function connectROS() {
   });
 
   ros.on('close', function() {
-    log('ROSBridge closed — reconnecting…', 'warn');
+    log('ROSBridge closed - reconnecting...', 'warn');
     setRosStatus(false);
     setTimeout(connectROS, 2000);
   });
 }
+
 
 function setRosStatus(online) {
   const dot = document.getElementById('dotROS');
@@ -1238,24 +1654,15 @@ document.getElementById('startExploration').onclick = function() {
   dot.classList.add('warn');
   dot.classList.remove('on');
 
-  log('Sending start_exploration…', 'info');
+  log('Sending start_exploration...', 'info');
 
   cmdCount++;
-
   document.getElementById('metCmds').textContent = cmdCount;
 
   fetch('/start_exploration')
-
     .then(r => r.json())
-
     .then(data => {
-
-      log(
-        data.message ||
-        'Exploration started',
-        'ok'
-      );
-
+      log(data.message || 'Exploration started', 'ok');
       toast('Exploration Started');
 
       val.textContent = 'RUNNING';
@@ -1268,60 +1675,22 @@ document.getElementById('startExploration').onclick = function() {
       pill.className = 'sys-pill up';
 
       mode.textContent = '› EXPLORING';
+      document.getElementById('telRobot').textContent = 'MOVING';
 
-      document.getElementById(
-        'telRobot'
-      ).textContent = 'MOVING';
+      const missionMode = document.getElementById('missionMode');
+      if (missionMode) { missionMode.textContent = 'AUTO'; }
 
-      // NEW MISSION PANEL UPDATE
-
-      const missionMode =
-        document.getElementById(
-          'missionMode'
-        );
-
-      if (missionMode) {
-
-        missionMode.textContent =
-          'AUTO';
-
-      }
-
-      const missionCommands =
-        document.getElementById(
-          'missionCommands'
-        );
-
-      if (missionCommands) {
-
-        missionCommands.textContent =
-          cmdCount;
-
-      }
-
+      const missionCommands = document.getElementById('missionCommands');
+      if (missionCommands) { missionCommands.textContent = cmdCount; }
     })
-
     .catch(err => {
-
-      log(
-        'start_exploration failed: ' +
-        err,
-        'err'
-      );
-
+      log('start_exploration failed: ' + err, 'err');
       toast('Command Failed');
 
       val.textContent = 'ERROR';
-
       val.className = 'status-val';
-
-      dot.classList.remove(
-        'on',
-        'warn'
-      );
-
+      dot.classList.remove('on', 'warn');
     });
-
 };
 
 // ── STOP EXPLORATION ──────────────────────────
@@ -1332,90 +1701,46 @@ document.getElementById('stopExploration').onclick = function() {
   const pill = document.getElementById('pillExplore');
   const mode = document.getElementById('modeLabel');
 
-  log('Sending stop_exploration…', 'info');
+  log('Sending stop_exploration...', 'info');
 
   cmdCount++;
-
   document.getElementById('metCmds').textContent = cmdCount;
 
   fetch('/stop_exploration')
-
     .then(r => r.json())
-
     .then(data => {
-
-      log(
-        data.message ||
-        'Exploration stopped',
-        'ok'
-      );
-
+      log(data.message || 'Exploration stopped', 'ok');
       toast('Exploration Stopped');
 
       val.textContent = 'STOPPED';
       val.className = 'status-val';
 
-      dot.classList.remove(
-        'on',
-        'warn'
-      );
+      dot.classList.remove('on', 'warn');
 
       pill.textContent = 'IDLE';
       pill.className = 'sys-pill down';
 
       mode.textContent = '› STANDBY';
+      document.getElementById('telRobot').textContent = 'ACTIVE';
 
-      document.getElementById(
-        'telRobot'
-      ).textContent = 'ACTIVE';
+      const missionMode = document.getElementById('missionMode');
+      if (missionMode) { missionMode.textContent = 'PAUSED'; }
 
-      // NEW MISSION PANEL UPDATE
-
-      const missionMode =
-        document.getElementById(
-          'missionMode'
-        );
-
-      if (missionMode) {
-
-        missionMode.textContent =
-          'PAUSED';
-
-      }
-
-      const missionCommands =
-        document.getElementById(
-          'missionCommands'
-        );
-
-      if (missionCommands) {
-
-        missionCommands.textContent =
-          cmdCount;
-
-      }
-
+      const missionCommands = document.getElementById('missionCommands');
+      if (missionCommands) { missionCommands.textContent = cmdCount; }
     })
-
     .catch(err => {
-
-      log(
-        'stop_exploration failed: ' +
-        err,
-        'err'
-      );
-
+      log('stop_exploration failed: ' + err, 'err');
       toast('Command Failed');
-
     });
-
 };
+
 // ── SHUTDOWN ──────────────────────────────────
 document.getElementById('shutdownSystem').onclick = function() {
   if (!confirm('Shut down the entire robotics stack?')) return;
 
   log('SHUTDOWN INITIATED', 'err');
-  toast('Shutting Down…');
+  toast('Shutting Down...');
 
   document.getElementById('valROS').textContent = 'OFFLINE';
   document.getElementById('valROS').className = 'status-val';
@@ -1439,6 +1764,76 @@ document.getElementById('shutdownSystem').onclick = function() {
     });
 };
 
+const _setInitialPoseBtn = document.getElementById('setInitialPoseBtn');
+if (_setInitialPoseBtn) {
+  _setInitialPoseBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    clickNavEnabled = true;
+    waypointMissionEnabled = false;
+    pendingInsert = null;
+    missionClickMode = 'initialpose';
+    updateMissionClickModeUI();
+    toast('Click map to set initial pose');
+    log('Mission click mode: INITIAL POSE', 'info');
+  });
+}
+
+const _enableNavClickBtn = document.getElementById('enableNavClickBtn');
+if (_enableNavClickBtn) {
+  _enableNavClickBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    clickNavEnabled = true;
+    waypointMissionEnabled = false;
+    pendingInsert = null;
+    missionClickMode = 'navigate';
+    updateMissionClickModeUI();
+    toast('Click map to send navigation goal');
+    log('Mission click mode: NAVIGATE', 'info');
+  });
+}
+
+const _enableWaypointMissionBtn = document.getElementById('enableWaypointMissionBtn');
+if (_enableWaypointMissionBtn) {
+  _enableWaypointMissionBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    if (!loadedMap || !loadedMap.info) {
+      toast('Load a map first');
+      return;
+    }
+    clickNavEnabled = true;
+    waypointMissionEnabled = true;
+    pendingInsert = null;
+    missionClickMode = 'waypoint_add';
+    updateMissionClickModeUI();
+    toast('Click map to add waypoints');
+    log('Mission click mode: WAYPOINT MISSION', 'info');
+  });
+}
+
+const _startRouteBtn = document.getElementById('startRouteBtn');
+if (_startRouteBtn) {
+  _startRouteBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    startRouteExecution();
+  });
+}
+
+const _stopRouteBtn = document.getElementById('stopRouteBtn');
+if (_stopRouteBtn) {
+  _stopRouteBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    stopRouteExecution();
+  });
+}
+
+const _cancelNavBtn = document.getElementById('cancelNavBtn');
+if (_cancelNavBtn) {
+  _cancelNavBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    cancelNavigationGoal();
+  });
+}
+
 // ── MAP ───────────────────────────────────────
 const canvas = document.getElementById('mapCanvas');
 const ctx    = canvas.getContext('2d');
@@ -1447,20 +1842,406 @@ function resizeCanvas() {
   const rect = canvas.parentElement.getBoundingClientRect();
   canvas.width  = Math.floor(rect.width);
   canvas.height = Math.floor(rect.height);
+  redrawCanvas();
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
+function redrawCanvas() {
+  if (mapRenderMode === 'slam') return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (mapRenderMode === 'static' && loadedMap && loadedMap.imageElement) {
+    renderStaticMap();
+  } else if (mapRenderMode === 'empty' || (mapRenderMode === 'static' && !loadedMap)) {
+    renderMapPlaceholder();
+  }
+}
+
+function drawMissionGoalMarker(info) {
+  if (!missionGoal || !info) return;
+
+  const p = worldToCanvas(missionGoal.x, missionGoal.y, info);
+
+  ctx.save();
+  ctx.strokeStyle = '#ffab00';
+  ctx.fillStyle = 'rgba(255,171,0,0.18)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(p.x - 12, p.y);
+  ctx.lineTo(p.x + 12, p.y);
+  ctx.moveTo(p.x, p.y - 12);
+  ctx.lineTo(p.x, p.y + 12);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawInitialPoseMarker(info) {
+  if (!missionInitialPose || !info) return;
+
+  const p = worldToCanvas(missionInitialPose.x, missionInitialPose.y, info);
+
+  ctx.save();
+  ctx.strokeStyle = '#00e676';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p.x - 8, p.y - 8);
+  ctx.lineTo(p.x + 8, p.y + 8);
+  ctx.moveTo(p.x + 8, p.y - 8);
+  ctx.lineTo(p.x - 8, p.y + 8);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawWaypointRoute(info) {
+  if (!routeStatus || !routeStatus.waypoints || routeStatus.waypoints.length === 0 || !info) return;
+
+  const waypoints = routeStatus.waypoints;
+
+  if (waypoints.length > 1) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,171,0,0.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    waypoints.forEach((wp, i) => {
+      const p = worldToCanvas(wp.x, wp.y, info);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  waypoints.forEach((wp, i) => {
+    const p = worldToCanvas(wp.x, wp.y, info);
+
+    let fill = '#ffab00';
+    let text = '#111';
+
+    if (wp.state === 'completed') {
+      fill = '#8a98a8';
+      text = '#111';
+    } else if (wp.state === 'current') {
+      fill = '#00e676';
+      text = '#111';
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.fillStyle = fill;
+    ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = text;
+    ctx.font = 'bold 12px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(i + 1), p.x, p.y + 0.5);
+    ctx.restore();
+  });
+}
+
+function renderStaticMap() {
+  if (!loadedMap || !loadedMap.imageElement) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(loadedMap.imageElement, 0, 0, canvas.width, canvas.height);
+  drawWaypointRoute(loadedMap.info);
+  drawInitialPoseMarker(loadedMap.info);
+  drawMissionGoalMarker(loadedMap.info);
+  drawRobotMarker(loadedMap.info);
+  document.getElementById('mapBadge').textContent = 'STATIC';
+  document.getElementById('mapBadge').style.color = 'var(--cyan)';
+}
+
+function updateMissionModeOverlay() {
+  const overlay = document.getElementById('missionModeOverlay');
+  const title   = document.getElementById('missionModeTitle');
+  const nameEl  = document.getElementById('missionModeName');
+  const copyEl  = document.getElementById('missionModeCopy');
+  const metaEl  = document.getElementById('missionModeMeta');
+
+  if (!overlay || !title || !nameEl || !copyEl || !metaEl) return;
+
+  const mapOnCanvas = (mapRenderMode === 'static' && loadedMap && loadedMap.imageElement);
+  if (mapOnCanvas) {
+    overlay.classList.remove('show');
+    return;
+  }
+
+  if (!selectedMap && !loadedMap) {
+    title.textContent = 'No Map Selected';
+    nameEl.textContent = 'Select a map from the Saved Maps panel.';
+    copyEl.textContent = 'Mission Mode is ready for localization visualization.';
+  } else if (selectedMap && !loadedMap) {
+    title.textContent = 'Selected Map';
+    nameEl.textContent = selectedMap;
+    copyEl.textContent = 'Press Load Map to continue.';
+  } else {
+    title.textContent = 'Loaded Map';
+    nameEl.textContent = loadedMap.name;
+    copyEl.textContent = 'Fetching map image...';
+  }
+
+  metaEl.textContent = 'Localization Status: ' + (localizationActive ? 'ACTIVE' : 'INACTIVE');
+  overlay.classList.toggle('show', currentMode === 'mission');
+}
+
+function renderMapPlaceholder() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,229,255,0.06)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.font = '600 13px "IBM Plex Mono", monospace';
+  ctx.fillStyle = 'rgba(0,229,255,0.35)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('NO MAP LOADED', canvas.width / 2, canvas.height / 2 - 12);
+
+  ctx.font = '400 10px "IBM Plex Mono", monospace';
+  ctx.fillStyle = 'rgba(0,229,255,0.18)';
+  ctx.fillText('Select a map and press LOAD', canvas.width / 2, canvas.height / 2 + 10);
+  ctx.restore();
+
+  document.getElementById('mapBadge').textContent = 'NO MAP';
+  document.getElementById('mapBadge').style.color = 'var(--text-dim)';
+}
+
+function canvasToWorld(canvasX, canvasY, info) {
+  const originX    = info.origin.position.x;
+  const originY    = info.origin.position.y;
+  const resolution = info.resolution || 1;
+  const w = info.width;
+  const h = info.height;
+  const sx = canvas.width / w;
+  const sy = canvas.height / h;
+
+  const mapX = canvasX / sx;
+  const mapY = h - (canvasY / sy);
+
+  return {
+    x: mapX * resolution + originX,
+    y: mapY * resolution + originY,
+  };
+}
+
+function updateMissionClickModeUI() {
+  const el = document.getElementById('missionClickModeVal');
+  if (!el) return;
+
+  if (missionClickMode === 'initialpose') {
+    el.textContent = 'INITIAL POSE';
+  } else if (missionClickMode === 'navigate') {
+    el.textContent = 'NAVIGATE';
+  } else if (missionClickMode === 'waypoint_add') {
+    el.textContent = 'WAYPOINT ADD';
+  } else if (missionClickMode === 'waypoint_insert_before') {
+    el.textContent = 'INSERT BEFORE';
+  } else if (missionClickMode === 'waypoint_insert_after') {
+    el.textContent = 'INSERT AFTER';
+  } else {
+    el.textContent = 'NAVIGATE';
+  }
+
+  el.classList.remove('empty');
+}
+
+function updateMissionNavStateUI(state) {
+  const el = document.getElementById('missionNavState');
+  if (!el) return;
+
+  el.textContent = (state || 'idle').toUpperCase();
+  el.classList.remove('empty');
+}
+
+function setInitialPoseFromMap(x, y, yaw) {
+  log('Setting initial pose at [' + x.toFixed(2) + ', ' + y.toFixed(2) + ']', 'info');
+  toast('Setting Initial Pose...');
+
+  fetch('/set_initial_pose', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ x, y, yaw })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Initial pose failed');
+
+      missionInitialPose = { x, y, yaw };
+      localizationActive = true;
+      poseSource = 'amcl';
+      clickNavEnabled = false;
+
+      document.getElementById('pillAmcl').textContent = 'ACTIVE';
+      document.getElementById('pillAmcl').className   = 'sys-pill up';
+
+      updateMissionControlsPanel();
+      updateMissionNavStateUI('localized');
+      updateMissionModeOverlay();
+      resubscribeToPose();
+
+      log('Initial pose set', 'ok');
+      toast('Localization Initialized');
+
+      missionClickMode = 'initialpose';
+      updateMissionClickModeUI();
+      redrawCanvas();
+    })
+    .catch(err => {
+      log('set_initial_pose failed: ' + err, 'err');
+      toast('Initial Pose Failed');
+    });
+}
+
+function sendNavigationGoal(x, y, yaw) {
+  if (!localizationActive) {
+    toast('Set Initial Pose First');
+    log('Navigation blocked: localization inactive', 'warn');
+    return;
+  }
+
+  log('Sending navigation goal to [' + x.toFixed(2) + ', ' + y.toFixed(2) + ']', 'info');
+  toast('Sending Goal...');
+
+  fetch('/navigate_to', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ x, y, yaw })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Navigation failed');
+
+      missionGoal = { x, y, yaw };
+      updateMissionNavStateUI('navigating');
+      redrawCanvas();
+
+      log('Navigation goal accepted', 'ok');
+      toast('Goal Accepted');
+    })
+    .catch(err => {
+      log('navigate_to failed: ' + err, 'err');
+      toast('Navigation Failed');
+    });
+}
+
+function cancelNavigationGoal() {
+  fetch('/cancel_navigation', {
+    method: 'POST'
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Cancel failed');
+
+      updateMissionNavStateUI('canceled');
+      log('Navigation goal canceled', 'warn');
+      toast('Goal Canceled');
+    })
+    .catch(err => {
+      log('cancel_navigation failed: ' + err, 'err');
+      toast('Cancel Failed');
+    });
+}
+
+function pollNavigationStatus() {
+  fetch('/navigation_status')
+    .then(r => r.json())
+    .then(data => {
+      if (!data || !data.state) return;
+
+      updateMissionNavStateUI(data.state);
+
+      if (data.goal) {
+        missionGoal = data.goal;
+      }
+
+      if (data.state === 'succeeded') {
+        toast('Goal Reached');
+      }
+
+      redrawCanvas();
+    })
+    .catch(() => {});
+}
+
+canvas.addEventListener('click', function(e) {
+  if (currentMode !== 'mission') return;
+  if (!loadedMap || !loadedMap.info) return;
+  if (!clickNavEnabled) return;
+
+  const rect = canvas.getBoundingClientRect();
+
+  const canvasX =
+      (e.clientX - rect.left) *
+      (canvas.width / rect.width);
+
+  const canvasY =
+      (e.clientY - rect.top) *
+      (canvas.height / rect.height);
+
+  const mapCoords = canvasToWorld(
+      canvasX,
+      canvasY,
+      loadedMap.info
+  );
+
+  if (missionClickMode === 'initialpose') {
+    clickNavEnabled = false;
+    setInitialPoseFromMap(mapCoords.x, mapCoords.y, 0.0);
+    return;
+  }
+
+  if (missionClickMode === 'navigate') {
+    clickNavEnabled = false;
+    sendNavigationGoal(mapCoords.x, mapCoords.y, 0.0);
+    return;
+  }
+
+  if (missionClickMode === 'waypoint_add') {
+    addWaypointToBackend(mapCoords.x, mapCoords.y, 0.0);
+    return;
+  }
+
+  if (missionClickMode === 'waypoint_insert_before' && pendingInsert) {
+    insertWaypointToBackend(mapCoords.x, mapCoords.y, 0.0, pendingInsert.index);
+    pendingInsert = null;
+    missionClickMode = 'waypoint_add';
+    updateMissionClickModeUI();
+    return;
+  }
+
+  if (missionClickMode === 'waypoint_insert_after' && pendingInsert) {
+    insertWaypointToBackend(mapCoords.x, mapCoords.y, 0.0, pendingInsert.index + 1);
+    pendingInsert = null;
+    missionClickMode = 'waypoint_add';
+    updateMissionClickModeUI();
+  }
+});
+
 function subscribeToMap() {
   const topic = new ROSLIB.Topic({
     ros,
-    name: '/map',
+    name: ROS_TOPICS.map,
     messageType: 'nav_msgs/OccupancyGrid'
   });
   topic.subscribe(function(msg) {
-    renderMap(msg);
-    document.getElementById('mapBadge').textContent = 'LIVE';
-    document.getElementById('mapBadge').style.color = 'var(--green)';
+    latestMapInfo = msg.info;
+    if (mapRenderMode === 'slam') {
+      renderMap(msg);
+      document.getElementById('mapBadge').textContent = 'LIVE';
+      document.getElementById('mapBadge').style.color = 'var(--green)';
+    }
   });
 }
 
@@ -1480,9 +2261,9 @@ function renderMap(msg) {
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const v = d[x + y * w];
-      if (v === -1)      ctx.fillStyle = '#0e1a24';  // unknown
-      else if (v === 0)  { ctx.fillStyle = '#1a3040'; knownCells++; }  // free
-      else               { ctx.fillStyle = '#00e5ff'; knownCells++; }  // occupied
+      if (v === -1)      ctx.fillStyle = '#0e1a24';
+      else if (v === 0)  { ctx.fillStyle = '#1a3040'; knownCells++; }
+      else               { ctx.fillStyle = '#00e5ff'; knownCells++; }
 
       ctx.fillRect(x * sx, (h - y) * sy, sx + 1, sy + 1);
     }
@@ -1498,16 +2279,12 @@ function renderMap(msg) {
   const pct = Math.round((knownCells / (w * h)) * 100);
   document.getElementById('telCoverage').textContent = pct + '%';
 
-  document.getElementById(
-  'missionCoverage'
-  ).textContent = pct + '%';
-
-  document.getElementById(
-  'missionUpdates'
-  ).textContent = mapUpdates;
+  if (currentMode !== 'mission') {
+    document.getElementById('missionCoverage').textContent = pct + '%';
+  }
+  document.getElementById('missionUpdates').textContent = mapUpdates;
 }
 
-// ── TRAJECTORY HELPERS ─────────────────────────
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -1531,6 +2308,7 @@ function worldToCanvas(worldX, worldY, info) {
 }
 
 function appendTrajectoryPoint(worldX, worldY) {
+  if (!trajectoryEnabled) return;
   const point = { x: worldX, y: worldY };
 
   if (robotPath.length === 0) {
@@ -1553,6 +2331,7 @@ function clearPath() {
 }
 
 function drawTrajectoryOverlay(info) {
+  if (!trajectoryEnabled) return;
   if (!robotPath || robotPath.length < 2 || !info) return;
 
   const total = robotPath.length - 1;
@@ -1562,7 +2341,6 @@ function drawTrajectoryOverlay(info) {
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  // Subtle glow for the trail (reduced intensity and blur)
   ctx.shadowColor = 'rgba(0,229,255,0.36)';
   ctx.shadowBlur = 3;
 
@@ -1574,8 +2352,6 @@ function drawTrajectoryOverlay(info) {
 
     const ageRatio = total > 0 ? i / total : 0;
     const isRecent = i >= recentStart;
-    // Fade and thickness: older segments are thinner and dimmer;
-    // recent segments are slightly thicker but kept modest to avoid overpowering the map.
     const alpha = isRecent
       ? 0.60 + 0.35 * ((i - recentStart) / Math.max(1, recentCount - 1))
       : 0.12 + 0.25 * ageRatio;
@@ -1583,7 +2359,7 @@ function drawTrajectoryOverlay(info) {
       ? 1.6 + 0.6 * ((i - recentStart) / Math.max(1, recentCount - 1))
       : 0.8 + 0.6 * ageRatio;
 
-    ctx.strokeStyle = `rgba(0, 229, 255, ${alpha.toFixed(2)})`;
+    ctx.strokeStyle = 'rgba(0, 229, 255, ' + alpha.toFixed(2) + ')';
     ctx.lineWidth = width;
     ctx.beginPath();
     ctx.moveTo(startPx.x, startPx.y);
@@ -1596,7 +2372,6 @@ function drawTrajectoryOverlay(info) {
 
 function drawRobotMarker(info) {
   if (!latestRobotPose || !info) return;
-
   const pos = worldToCanvas(latestRobotPose.x, latestRobotPose.y, info);
   const yaw = latestRobotPose.yaw || 0;
   const arrowLength = 16;
@@ -1626,8 +2401,8 @@ function drawRobotMarker(info) {
   const rightX = tipX - Math.cos(yaw + headAngle) * arrowHead;
   const rightY = tipY - Math.sin(yaw + headAngle) * arrowHead;
 
-  ctx.strokeStyle = '#ffffff';
-  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#00e5ff';
+  ctx.fillStyle = '#00e5ff';
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(pos.x, pos.y);
@@ -1642,15 +2417,28 @@ function drawRobotMarker(info) {
 
 // ── POSE ──────────────────────────────────────
 function subscribeToPose() {
-  const topic = new ROSLIB.Topic({
-    ros,
-    name: '/odom',
-    messageType: 'nav_msgs/Odometry'
-  });
-  topic.subscribe(function(msg) {
-    const x = msg.pose.pose.position.x;
-    const y = msg.pose.pose.position.y;
-    const q = msg.pose.pose.orientation;
+  const topicName    = poseSource === 'amcl' ? ROS_TOPICS.amclPose : ROS_TOPICS.odom;
+  const messageType  = poseSource === 'amcl'
+    ? 'geometry_msgs/PoseWithCovarianceStamped'
+    : 'nav_msgs/Odometry';
+
+  if (_poseTopicSub) {
+    try { _poseTopicSub.unsubscribe(); } catch(e) {}
+  }
+
+  _poseTopicSub = new ROSLIB.Topic({ ros, name: topicName, messageType });
+
+  _poseTopicSub.subscribe(function(msg) {
+    let x, y, q;
+    if (poseSource === 'amcl') {
+      x = msg.pose.pose.position.x;
+      y = msg.pose.pose.position.y;
+      q = msg.pose.pose.orientation;
+    } else {
+      x = msg.pose.pose.position.x;
+      y = msg.pose.pose.position.y;
+      q = msg.pose.pose.orientation;
+    }
 
     const yawRad = Math.atan2(
       2 * (q.w * q.z + q.x * q.y),
@@ -1678,70 +2466,117 @@ function subscribeToPose() {
     document.getElementById('posY').textContent = y.toFixed(3);
     document.getElementById('yaw').textContent   = yawDeg + '°';
 
-    if (latestMapInfo) {
-      drawTrajectoryOverlay(latestMapInfo);
-      drawRobotMarker(latestMapInfo);
+    const activeInfo = (mapRenderMode === 'static' && loadedMap) ? loadedMap.info : latestMapInfo;
+    if (activeInfo) {
+      if (mapRenderMode === 'static' && loadedMap && loadedMap.imageElement) {
+        renderStaticMap();
+      } else if (mapRenderMode === 'slam') {
+        drawTrajectoryOverlay(latestMapInfo);
+        drawRobotMarker(latestMapInfo);
+      }
     }
   });
 }
 
+function resubscribeToPose() {
+  subscribeToPose();
+}
 
-// ── MODE TOGGLE ───────────────────────────────
-document.getElementById('modeToggle').addEventListener('change', function() {
-  if (this.checked) {
-    // → TELEOP: stop exploration first (safety)
-    log('Switching to Teleop — stopping exploration…', 'warn');
-    fetch('/stop_exploration')
-      .then(r => r.json())
-      .catch(() => {})
-      .finally(() => applyTeleopMode());
-  } else {
-    // → AUTONOMOUS
-    applyAutonomousMode();
+// ── MODE STATE MACHINE ────────────────────────
+function showControls(mode) {
+  document.getElementById('autonomousControls').style.display = mode === 'autonomous' ? 'flex'   : 'none';
+  document.getElementById('teleopControls').style.display     = mode === 'teleop'     ? 'flex'   : 'none';
+  document.getElementById('missionControls').style.display    = mode === 'mission'    ? 'flex'   : 'none';
+}
+
+function setSavedMapsPanelEnabled(enabled) {
+  const panel = document.getElementById('savedMapsPanel');
+  if (enabled) { panel.classList.remove('disabled'); }
+  else         { panel.classList.add('disabled'); }
+}
+
+function updateModeLabels(missionModeText, modeLabelText) {
+  const mm = document.getElementById('missionMode');
+  const ml = document.getElementById('modeLabel');
+  if (mm) mm.textContent = missionModeText;
+  if (ml) ml.textContent = modeLabelText;
+}
+
+function updateSegButtons(activeMode) {
+  document.querySelectorAll('.mode-seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === activeMode);
+  });
+}
+
+function setMode(newMode) {
+  if (newMode === currentMode) return;
+  const prevMode = currentMode;
+  currentMode = newMode;
+
+  if (prevMode === 'autonomous') {
+    fetch('/stop_exploration').catch(() => {});
+    const dot  = document.getElementById('dotExpl');
+    const val  = document.getElementById('valExpl');
+    const pill = document.getElementById('pillExplore');
+    val.textContent = 'STOPPED'; val.className = 'status-val';
+    dot.classList.remove('on', 'warn');
+    pill.textContent = 'IDLE'; pill.className = 'sys-pill down';
   }
+
+  if (prevMode === 'teleop') {
+    publishVelocity(0, 0);
+  }
+
+  if (prevMode === 'mission') {
+    setSavedMapsPanelEnabled(false);
+    poseSource = localizationActive ? 'amcl' : 'odom';
+    resubscribeToPose();
+  }
+
+  if (newMode === 'autonomous') {
+    trajectoryEnabled = true;
+    mapRenderMode     = 'slam';
+    updateMissionModeOverlay();
+    showControls('autonomous');
+    setSavedMapsPanelEnabled(false);
+    updateModeLabels('STANDBY', '› STANDBY');
+    document.getElementById('missionCoverage').textContent = '0%';
+  }
+
+  if (newMode === 'teleop') {
+    trajectoryEnabled = true;
+    mapRenderMode     = 'slam';
+    updateMissionModeOverlay();
+    showControls('teleop');
+    setSavedMapsPanelEnabled(false);
+    updateModeLabels('TELEOP', '› TELEOP');
+  }
+
+  if (newMode === 'mission') {
+    trajectoryEnabled = false;
+    clearPath();
+    mapRenderMode = (loadedMap && loadedMap.imageElement) ? 'static' : 'empty';
+    showControls('mission');
+    setSavedMapsPanelEnabled(true);
+    updateMissionModeOverlay();
+    redrawCanvas();
+    updateModeLabels('MISSION', '› MISSION');
+    document.getElementById('missionCoverage').textContent = 'N/A';
+    updateMissionControlsPanel();
+    refreshRouteStatus();
+  }
+
+  updateSegButtons(newMode);
+  log('Mode: ' + prevMode.toUpperCase() + ' → ' + newMode.toUpperCase(), 'info');
+  toast(newMode.charAt(0).toUpperCase() + newMode.slice(1) + ' Mode Active');
+}
+
+document.getElementById('modeSeg').addEventListener('click', function(e) {
+  const btn = e.target.closest('.mode-seg-btn');
+  if (btn) setMode(btn.dataset.mode);
 });
 
-function applyTeleopMode() {
-  const dot  = document.getElementById('dotExpl');
-  const val  = document.getElementById('valExpl');
-  const pill = document.getElementById('pillExplore');
-
-  val.textContent = 'STOPPED'; val.className = 'status-val';
-  dot.classList.remove('on', 'warn');
-  pill.textContent = 'IDLE'; pill.className = 'sys-pill down';
-
-  document.getElementById('autonomousControls').style.display = 'none';
-  document.getElementById('teleopControls').style.display    = 'flex';
-
-  document.getElementById('missionMode').textContent = 'TELEOP';
-  document.getElementById('modeLabel').textContent   = '› TELEOP';
-
-  document.getElementById('labelAutonomous').classList.remove('active');
-  document.getElementById('labelTeleop').classList.add('active');
-
-  log('Teleoperation Mode Enabled', 'warn');
-  toast('Teleop Mode Active');
-}
-
-function applyAutonomousMode() {
-  publishVelocity(0, 0); // safety stop before handing back
-  document.getElementById('teleopControls').style.display    = 'none';
-  document.getElementById('autonomousControls').style.display = '';
-
-  document.getElementById('missionMode').textContent = 'IDLE';
-  document.getElementById('modeLabel').textContent   = '› STANDBY';
-
-  document.getElementById('labelTeleop').classList.remove('active');
-  document.getElementById('labelAutonomous').classList.add('active');
-
-  log('Autonomous Mode Enabled', 'info');
-  toast('Autonomous Mode Active');
-}
-
 // ── TELEOP VELOCITY ───────────────────────────
-let _cmdVelTopic = null;
-let _cmdVelRosRef = null;
-
 function getCmdVelTopic() {
   if (!ros) return null;
   if (_cmdVelTopic && _cmdVelRosRef === ros) return _cmdVelTopic;
@@ -1763,7 +2598,6 @@ function publishVelocity(linear, angular) {
   }));
 }
 
-// Speed slider
 const _speedSlider = document.getElementById('teleopSpeed');
 const _speedVal    = document.getElementById('speedVal');
 _speedSlider.addEventListener('input', function() {
@@ -1771,7 +2605,6 @@ _speedSlider.addEventListener('input', function() {
 });
 function getSpeed() { return parseFloat(_speedSlider.value); }
 
-// D-pad bindings
 [
   { id: 'teleopForward',  lin:  1, ang:  0 },
   { id: 'teleopBackward', lin: -1, ang:  0 },
@@ -1790,8 +2623,729 @@ function getSpeed() { return parseFloat(_speedSlider.value); }
   btn.addEventListener('touchcancel',release);
 });
 
+function selectMap(name, elem) {
+  const prev = document.querySelector('#mapsList .map-item.selected');
+  if (prev && prev !== elem) prev.classList.remove('selected');
+  if (elem) elem.classList.add('selected');
+  selectedMapName = name || null;
+  selectedMap = selectedMapName;
+  const selectedNameEl = document.getElementById('selectedName');
+  const previewBtn = document.getElementById('previewBtn');
+  const deleteBtn  = document.getElementById('deleteBtn');
+  if (selectedNameEl) selectedNameEl.textContent = selectedMapName || 'None';
+  if (previewBtn) previewBtn.disabled = !selectedMap;
+  if (deleteBtn)  deleteBtn.disabled  = !selectedMap;
+  updateMissionModeOverlay();
+  updateLoadButtonState();
+}
+
+function updateLoadButtonState() {
+  const previewBtn = document.getElementById('previewBtn');
+  const deleteBtn  = document.getElementById('deleteBtn');
+  const loadMapBtn = document.getElementById('loadMapBtn');
+  if (previewBtn) previewBtn.disabled = !selectedMap;
+  if (deleteBtn)  deleteBtn.disabled  = !selectedMap;
+  if (!loadMapBtn) return;
+  if (loadedMap) {
+    const label = loadMapBtn.querySelector('.btn-label');
+    if (label) label.textContent = 'Unload Map';
+    loadMapBtn.classList.remove('btn-start');
+    loadMapBtn.classList.add('btn-stop');
+    loadMapBtn.disabled = false;
+  } else {
+    const label = loadMapBtn.querySelector('.btn-label');
+    if (label) label.textContent = 'Load Map';
+    loadMapBtn.classList.remove('btn-stop');
+    loadMapBtn.classList.add('btn-start');
+    loadMapBtn.disabled = !selectedMap;
+  }
+}
+
+function refreshSavedMapsLoadedIndicators() {
+  const container = document.getElementById('mapsList');
+  if (!container) return;
+  container.querySelectorAll('.map-item').forEach(item => {
+    const nameEl = item.querySelector('.map-name');
+    if (!nameEl) return;
+    const mapName = nameEl.dataset.mapName || nameEl.textContent;
+    const badge = item.querySelector('.map-loaded-badge');
+    if (badge) {
+      badge.style.display = (loadedMap && loadedMap.name === mapName) ? 'inline-block' : 'none';
+    }
+    item.classList.toggle('loaded', loadedMap && loadedMap.name === mapName);
+  });
+}
+
+function updateOccupancyHeader() {
+  const el = document.getElementById('occupancyStatus');
+  if (!el) return;
+  if (loadedMap) {
+    el.textContent = 'Loaded: ' + loadedMap.name;
+    el.style.color = 'var(--cyan)';
+    const ms = document.getElementById('missionStatusVal');
+    if (ms) ms.textContent = 'Loaded: ' + loadedMap.name;
+  } else {
+    el.textContent = 'No Map Loaded';
+    el.style.color = 'var(--text-dim)';
+    const ms = document.getElementById('missionStatusVal');
+    if (ms) ms.textContent = 'No Map Loaded';
+  }
+}
+
+function uiLoadMapByName(mapName) {
+  return loadMap(mapName);
+}
+
+function uiUnloadCurrentMap() {
+  return unloadMap();
+}
+
+function refreshMissionStatus() {
+  return fetch('/status')
+    .then(resp => {
+      if (!resp.ok) throw new Error('Status request failed');
+      return resp.json();
+    })
+    .then(status => {
+      const backendMapName = status.loaded_map || null;
+      if (!backendMapName) {
+        loadedMap = null;
+      } else if (!loadedMap || loadedMap.name !== backendMapName) {
+        loadedMap = { name: backendMapName, imageElement: null, info: null };
+      }
+
+      localizationActive = Boolean(status.localization_active);
+      document.getElementById('pillMapServer').textContent = status.map_server ? 'UP' : 'OFF';
+      document.getElementById('pillMapServer').className = status.map_server ? 'sys-pill up' : 'sys-pill down';
+      document.getElementById('pillAmcl').textContent = status.amcl ? 'ACTIVE' : 'INACTIVE';
+      document.getElementById('pillAmcl').className = status.amcl ? 'sys-pill up' : 'sys-pill down';
+
+      if (status.route) {
+        routeStatus = status.route;
+      }
+
+      updateMissionControlsPanel();
+      updateOccupancyHeader();
+      refreshSavedMapsLoadedIndicators();
+      updateMissionModeOverlay();
+      updateLoadButtonState();
+      renderWaypointList();
+      redrawCanvas();
+      return status;
+    })
+    .catch(err => {
+      console.error('refreshMissionStatus error', err);
+      return null;
+    });
+}
+
+function updateMissionControlsPanel() {
+  const nameEl = document.getElementById('missionCtrlMapName');
+  const locEl  = document.getElementById('missionCtrlLocStatus');
+  const leftEl = document.getElementById('missionLoadedMap');
+
+  if (leftEl) {
+    leftEl.textContent = loadedMap ? loadedMap.name : 'None';
+    leftEl.style.color = loadedMap ? 'var(--cyan)' : 'var(--text-dim)';
+  }
+
+  if (nameEl) {
+    if (loadedMap) {
+      nameEl.textContent = loadedMap.name;
+      nameEl.classList.remove('empty');
+    } else {
+      nameEl.textContent = 'NONE';
+      nameEl.classList.add('empty');
+    }
+  }
+
+  if (locEl) {
+    if (localizationActive) {
+      locEl.textContent = 'ACTIVE';
+      locEl.classList.remove('empty');
+    } else {
+      locEl.textContent = 'INACTIVE';
+      locEl.classList.add('empty');
+    }
+  }
+
+  const editingLocked = !!routeStatus.editing_locked;
+  const startRouteBtn = document.getElementById('startRouteBtn');
+  const stopRouteBtn = document.getElementById('stopRouteBtn');
+  const waypointBtn = document.getElementById('enableWaypointMissionBtn');
+  const navBtn = document.getElementById('enableNavClickBtn');
+  const poseBtn = document.getElementById('setInitialPoseBtn');
+
+  if (startRouteBtn) {
+    startRouteBtn.disabled = editingLocked || !routeStatus.waypoints || routeStatus.waypoints.length === 0 || !localizationActive;
+  }
+  if (stopRouteBtn) {
+    stopRouteBtn.disabled = !editingLocked && routeStatus.route_state !== 'running';
+  }
+  if (waypointBtn) waypointBtn.disabled = editingLocked || !loadedMap;
+  if (navBtn) navBtn.disabled = false;
+  if (poseBtn) poseBtn.disabled = false;
+}
+
+function loadMap(mapName) {
+  if (!mapName) return Promise.resolve(null);
+
+  log('Loading map: ' + mapName + '...', 'info');
+  toast('Loading Map...');
+
+  const loadBtn = document.getElementById('loadMapBtn');
+  if (loadBtn) {
+    loadBtn.disabled = true;
+    const label = loadBtn.querySelector('.btn-label');
+    if (label) label.textContent = 'Loading...';
+  }
+
+  return fetch('/load_map', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ map: mapName })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Load failed');
+
+      const raw = data.info || {};
+      const normInfo = {
+        resolution: raw.resolution || 0.05,
+        width:      raw.width      || 0,
+        height:     raw.height     || 0,
+        origin: {
+          position: { x: raw.origin_x || 0, y: raw.origin_y || 0 },
+          orientation: {
+            z: Math.sin((raw.origin_yaw || 0) / 2),
+            w: Math.cos((raw.origin_yaw || 0) / 2)
+          }
+        }
+      };
+
+      return new Promise((resolve) => {
+        const img = new Image();
+
+        img.onload = function() {
+          loadedMap = { name: mapName, imageElement: img, info: normInfo };
+          mapRenderMode = 'static';
+
+          updateMissionModeOverlay();
+          renderStaticMap();
+
+          const leftEl = document.getElementById('missionLoadedMap');
+          if (leftEl) { leftEl.textContent = mapName; leftEl.style.color = 'var(--cyan)'; }
+          document.getElementById('pillMapServer').textContent = 'UP';
+          document.getElementById('pillMapServer').className   = 'sys-pill up';
+
+          updateMissionControlsPanel();
+          updateOccupancyHeader();
+          refreshSavedMapsLoadedIndicators();
+          updateLoadButtonState();
+
+          log('Map loaded: ' + mapName, 'ok');
+          toast('Map Loaded: ' + mapName);
+          resolve(data);
+        };
+
+        img.onerror = function() {
+          loadedMap = { name: mapName, imageElement: null, info: normInfo };
+          log('Map image unavailable for: ' + mapName, 'warn');
+          toast('Map Loaded (no preview)');
+          resolve(data);
+        };
+
+        img.src = '/map_image/' + encodeURIComponent(mapName);
+      });
+    })
+    .then(() => refreshRouteStatus())
+    .catch(err => {
+      log('load_map failed: ' + err, 'err');
+      toast('Map Load Failed');
+      return null;
+    })
+    .finally(() => {
+      if (loadBtn) {
+        loadBtn.disabled = false;
+        const label = loadBtn.querySelector('.btn-label');
+        if (label) label.textContent = loadedMap ? 'Unload Map' : 'Load Map';
+      }
+    });
+}
+
+function unloadMap() {
+  log('Unloading current map...', 'info');
+  toast('Unloading Map...');
+
+  const loadBtn = document.getElementById('loadMapBtn');
+  if (loadBtn) {
+    loadBtn.disabled = true;
+    const label = loadBtn.querySelector('.btn-label');
+    if (label) label.textContent = 'Unloading...';
+  }
+
+  return fetch('/unload_map', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Unload failed');
+      log('Map Unloaded: ' + (loadedMap ? loadedMap.name : 'current map'), 'info');
+      toast('Map Unloaded');
+      return refreshMissionStatus();
+    })
+    .catch(err => {
+      log('unload_map failed: ' + err, 'err');
+      toast('Map Unload Failed');
+      return null;
+    })
+    .finally(() => {
+      if (loadBtn) {
+        loadBtn.disabled = false;
+        const label = loadBtn.querySelector('.btn-label');
+        if (label) label.textContent = loadedMap ? 'Unload Map' : 'Load Map';
+      }
+    });
+}
+
+function triggerLocalization() {
+  fetch('/localize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      localizationActive = true;
+      poseSource = 'amcl';
+      resubscribeToPose();
+      document.getElementById('pillAmcl').textContent = 'ACTIVE';
+      document.getElementById('pillAmcl').className   = 'sys-pill up';
+      log('Localization active (AMCL)', 'ok');
+      toast('Localization Active');
+      updateMissionControlsPanel();
+    }
+  })
+  .catch(() => {
+    log('Localization unavailable — using odometry', 'warn');
+  });
+}
+
+function addWaypointToBackend(x, y, yaw) {
+  fetch('/waypoints/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ x, y, yaw })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Add waypoint failed');
+      cmdCount++;
+      document.getElementById('metCmds').textContent = cmdCount;
+      routeStatus = data.route_status || routeStatus;
+      renderWaypointList();
+      redrawCanvas();
+      updateMissionControlsPanel();
+      log('Waypoint added at [' + x.toFixed(2) + ', ' + y.toFixed(2) + ']', 'ok');
+      toast('Waypoint Added');
+    })
+    .catch(err => {
+      log('add_waypoint failed: ' + err, 'err');
+      toast('Waypoint Add Failed');
+    });
+}
+
+function insertWaypointToBackend(x, y, yaw, index) {
+  fetch('/waypoints/insert', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ x, y, yaw, index })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Insert waypoint failed');
+      cmdCount++;
+      document.getElementById('metCmds').textContent = cmdCount;
+      routeStatus = data.route_status || routeStatus;
+      renderWaypointList();
+      redrawCanvas();
+      updateMissionControlsPanel();
+      log('Waypoint inserted', 'ok');
+      toast('Waypoint Inserted');
+    })
+    .catch(err => {
+      log('insert_waypoint failed: ' + err, 'err');
+      toast('Waypoint Insert Failed');
+    });
+}
+
+function deleteWaypoint(index) {
+  fetch('/waypoints/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ index })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Delete waypoint failed');
+      routeStatus = data.route_status || routeStatus;
+      renderWaypointList();
+      redrawCanvas();
+      updateMissionControlsPanel();
+      log('Waypoint deleted', 'warn');
+      toast('Waypoint Deleted');
+    })
+    .catch(err => {
+      log('delete_waypoint failed: ' + err, 'err');
+      toast('Delete Failed');
+    });
+}
+
+function moveWaypointUp(index) {
+  fetch('/waypoints/move_up', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ index })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Move up failed');
+      routeStatus = data.route_status || routeStatus;
+      renderWaypointList();
+      redrawCanvas();
+      updateMissionControlsPanel();
+      log('Waypoint moved up', 'ok');
+      toast('Waypoint Moved Up');
+    })
+    .catch(err => {
+      log('move_waypoint_up failed: ' + err, 'err');
+      toast('Move Failed');
+    });
+}
+
+function moveWaypointDown(index) {
+  fetch('/waypoints/move_down', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ index })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Move down failed');
+      routeStatus = data.route_status || routeStatus;
+      renderWaypointList();
+      redrawCanvas();
+      updateMissionControlsPanel();
+      log('Waypoint moved down', 'ok');
+      toast('Waypoint Moved Down');
+    })
+    .catch(err => {
+      log('move_waypoint_down failed: ' + err, 'err');
+      toast('Move Failed');
+    });
+}
+
+function clearWaypointsBackend() {
+  fetch('/waypoints/clear', {
+    method: 'POST'
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Clear waypoints failed');
+      routeStatus = data.route_status || routeStatus;
+      renderWaypointList();
+      redrawCanvas();
+      updateMissionControlsPanel();
+      log('Waypoints cleared', 'warn');
+      toast('Waypoints Cleared');
+    })
+    .catch(err => {
+      log('clear_waypoints failed: ' + err, 'err');
+      toast('Clear Failed');
+    });
+}
+
+function startRouteExecution() {
+  fetch('/start_route', {
+    method: 'POST'
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Start route failed');
+      routeStatus = data.route_status || routeStatus;
+      clickNavEnabled = false;
+      waypointMissionEnabled = false;
+      pendingInsert = null;
+      renderWaypointList();
+      redrawCanvas();
+      updateMissionControlsPanel();
+      log('Route execution started', 'ok');
+      toast('Route Started');
+    })
+    .catch(err => {
+      log('start_route failed: ' + err, 'err');
+      toast('Route Start Failed');
+    });
+}
+
+function stopRouteExecution() {
+  fetch('/stop_route', {
+    method: 'POST'
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Stop route failed');
+      routeStatus = data.route_status || routeStatus;
+      clickNavEnabled = true;
+      waypointMissionEnabled = true;
+      missionClickMode = 'waypoint_add';
+      pendingInsert = null;
+      updateMissionClickModeUI();
+      renderWaypointList();
+      redrawCanvas();
+      updateMissionControlsPanel();
+      log('Route stopped and cleared', 'warn');
+      toast('Route Stopped');
+    })
+    .catch(err => {
+      log('stop_route failed: ' + err, 'err');
+      toast('Route Stop Failed');
+    });
+}
+
+function refreshRouteStatus() {
+  return fetch('/route_status')
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.success) {
+        routeStatus = data;
+        renderWaypointList();
+        redrawCanvas();
+        updateMissionControlsPanel();
+      }
+      return data;
+    })
+    .catch(() => null);
+}
+
+function waypointStateSymbol(state) {
+  if (state === 'completed') return '✓';
+  if (state === 'current') return '→';
+  return '';
+}
+
+function renderWaypointList() {
+  const listEl = document.getElementById('missionWaypointList');
+  const statusEl = document.getElementById('missionWaypointStatus');
+  const bannerEl = document.getElementById('routeStatusBanner');
+  if (!listEl || !statusEl || !bannerEl) return;
+
+  const waypoints = routeStatus.waypoints || [];
+  const routeState = routeStatus.route_state || 'idle';
+  const locked = !!routeStatus.editing_locked;
+
+  bannerEl.className = 'route-status-banner ' + routeState;
+  bannerEl.textContent = routeStatus.message || ('Route ' + routeState);
+
+  if (routeState === 'running') {
+    statusEl.textContent = 'Route running - editing disabled';
+  } else if (missionClickMode === 'waypoint_insert_before' && pendingInsert) {
+    statusEl.textContent = 'Click map to insert before waypoint ' + (pendingInsert.index + 1);
+  } else if (missionClickMode === 'waypoint_insert_after' && pendingInsert) {
+    statusEl.textContent = 'Click map to insert after waypoint ' + (pendingInsert.index + 1);
+  } else if (missionClickMode === 'waypoint_add') {
+    statusEl.textContent = 'Click map to add waypoints';
+  } else {
+    statusEl.textContent = 'Waypoint mission inactive';
+  }
+
+  if (waypoints.length === 0) {
+    listEl.innerHTML = '<div class="waypoint-empty">No waypoints</div>';
+    return;
+  }
+
+  listEl.innerHTML = '';
+
+  waypoints.forEach((wp, index) => {
+    const item = document.createElement('div');
+    item.className = 'waypoint-item ' + (wp.state || 'pending');
+
+    const rowTop = document.createElement('div');
+    rowTop.className = 'waypoint-row-top';
+
+    const label = document.createElement('div');
+    label.className = 'waypoint-label ' + (wp.state || 'pending');
+    const symbol = waypointStateSymbol(wp.state);
+    label.textContent = (symbol ? symbol + ' ' : '') + (index + 1) + '. Waypoint';
+
+    rowTop.appendChild(label);
+
+    const coords = document.createElement('div');
+    coords.className = 'waypoint-coords';
+    coords.textContent = '(' + Number(wp.x).toFixed(2) + ', ' + Number(wp.y).toFixed(2) + ')';
+
+    const actions = document.createElement('div');
+    actions.className = 'waypoint-actions';
+
+    const upBtn = document.createElement('button');
+    upBtn.className = 'waypoint-mini-btn';
+    upBtn.textContent = '↑';
+    upBtn.disabled = locked || index === 0;
+    upBtn.onclick = () => moveWaypointUp(index);
+
+    const downBtn = document.createElement('button');
+    downBtn.className = 'waypoint-mini-btn';
+    downBtn.textContent = '↓';
+    downBtn.disabled = locked || index === waypoints.length - 1;
+    downBtn.onclick = () => moveWaypointDown(index);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'waypoint-mini-btn';
+    delBtn.textContent = 'Delete';
+    delBtn.disabled = locked;
+    delBtn.onclick = () => deleteWaypoint(index);
+
+    const beforeBtn = document.createElement('button');
+    beforeBtn.className = 'waypoint-mini-btn';
+    beforeBtn.textContent = 'Add Before';
+    beforeBtn.disabled = locked;
+    beforeBtn.onclick = () => {
+      clickNavEnabled = true;
+      waypointMissionEnabled = true;
+      pendingInsert = { index };
+      missionClickMode = 'waypoint_insert_before';
+      updateMissionClickModeUI();
+      renderWaypointList();
+      toast('Click map to insert before');
+    };
+
+    const afterBtn = document.createElement('button');
+    afterBtn.className = 'waypoint-mini-btn';
+    afterBtn.textContent = 'Add After';
+    afterBtn.disabled = locked;
+    afterBtn.onclick = () => {
+      clickNavEnabled = true;
+      waypointMissionEnabled = true;
+      pendingInsert = { index };
+      missionClickMode = 'waypoint_insert_after';
+      updateMissionClickModeUI();
+      renderWaypointList();
+      toast('Click map to insert after');
+    };
+
+    actions.appendChild(upBtn);
+    actions.appendChild(downBtn);
+    actions.appendChild(delBtn);
+    actions.appendChild(beforeBtn);
+    actions.appendChild(afterBtn);
+
+    item.appendChild(rowTop);
+    item.appendChild(coords);
+    item.appendChild(actions);
+    listEl.appendChild(item);
+  });
+
+  if (!locked) {
+    const clearWrap = document.createElement('div');
+    clearWrap.style.marginTop = '8px';
+
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'waypoint-mini-btn';
+    clearBtn.textContent = 'Clear All';
+    clearBtn.onclick = clearWaypointsBackend;
+
+    clearWrap.appendChild(clearBtn);
+    listEl.appendChild(clearWrap);
+  }
+}
+
+function loadMaps() {
+  const container = document.getElementById('mapsList');
+  if (!container) return;
+  container.textContent = 'Loading maps...';
+
+  const selectedNameEl = document.getElementById('selectedName');
+  const previewBtn = document.getElementById('previewBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  if (selectedNameEl) selectedNameEl.textContent = 'None';
+  if (previewBtn) previewBtn.disabled = true;
+  if (deleteBtn) deleteBtn.disabled = true;
+
+  fetch('/maps')
+    .then(resp => {
+      if (!resp.ok) throw new Error('Network response was not ok');
+      return resp.json();
+    })
+    .then(data => {
+      if (!Array.isArray(data) || data.length === 0) {
+        container.textContent = 'No saved maps found';
+        return;
+      }
+      container.innerHTML = '';
+      data.forEach(map => {
+        const item = document.createElement('div');
+        item.className = 'map-item';
+        item.tabIndex = 0;
+
+        const name = document.createElement('div');
+        name.className = 'map-name';
+        const mapName = map.name || map.yaml || 'unnamed';
+        name.textContent = mapName;
+        name.dataset.mapName = mapName;
+
+        const loadedBadge = document.createElement('span');
+        loadedBadge.className = 'map-loaded-badge';
+        loadedBadge.textContent = 'LOADED';
+        loadedBadge.style.display = (loadedMap && loadedMap.name === mapName) ? 'inline-block' : 'none';
+        name.appendChild(loadedBadge);
+
+        item.appendChild(name);
+        item.addEventListener('click', () => selectMap(mapName, item));
+        item.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMap(mapName, item); }
+        });
+
+        container.appendChild(item);
+      });
+      refreshSavedMapsLoadedIndicators();
+      updateLoadButtonState();
+      updateOccupancyHeader();
+    })
+    .catch(err => {
+      container.textContent = 'Failed to load maps';
+      console.error('loadMaps error', err);
+    });
+}
+
+const _loadMapBtn = document.getElementById('loadMapBtn');
+if (_loadMapBtn) _loadMapBtn.addEventListener('click', e => {
+  e.preventDefault();
+  if (!selectedMap) return;
+  if (!loadedMap) uiLoadMapByName(selectedMap);
+  else uiUnloadCurrentMap();
+});
+
+const _previewBtn = document.getElementById('previewBtn');
+if (_previewBtn) _previewBtn.addEventListener('click', e => {
+  e.preventDefault();
+  if (!selectedMap) return;
+  console.log('Preview', selectedMap);
+});
+
+const _deleteBtn = document.getElementById('deleteBtn');
+if (_deleteBtn) _deleteBtn.addEventListener('click', e => {
+  e.preventDefault();
+  if (!selectedMap) return;
+  console.log('Delete', selectedMap);
+});
+
+updateMissionClickModeUI();
+updateMissionNavStateUI('idle');
+renderWaypointList();
+setInterval(pollNavigationStatus, 1000);
+
 log('Dashboard initialized', 'info');
-log('Connecting to ROSBridge…', 'info');
+log('Connecting to ROSBridge...', 'info');
+loadMaps();
+refreshMissionStatus();
+refreshRouteStatus();
+setInterval(refreshMissionStatus, 3000);
+setInterval(refreshRouteStatus, 1000);
 </script>
 </body>
 </html>
