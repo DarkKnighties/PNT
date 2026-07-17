@@ -1,4 +1,4 @@
-# 🤖 PNT — ROS2 + Gazebo Robotics Web Dashboards
+# 🤖 ROS2 + Gazebo Robotics Web Dashboards
 
 This repository contains robotics web dashboard projects using ROS2, Gazebo, rosbridge_server, and roslibjs.
 
